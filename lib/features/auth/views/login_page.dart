@@ -291,17 +291,23 @@ class LoginContent extends StatelessWidget {
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: onCreateAccount,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primary,
-                    side: const BorderSide(color: AppTheme.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 52),
+                  child: OutlinedButton(
+                    onPressed: onCreateAccount,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.primary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 14,
+                      ),
+                      side: const BorderSide(color: AppTheme.primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    child: const Text('Criar conta'),
                   ),
-                  child: const Text('Criar conta'),
                 ),
               ),
               const SizedBox(height: 18),

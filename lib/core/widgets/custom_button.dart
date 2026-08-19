@@ -18,27 +18,32 @@ class CustomButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 52),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          ),
+          // Se estiver carregando, desativa o clique.
+          onPressed: isLoading ? null : onPressed,
 
-      child: ElevatedButton(
-        // Se estiver carregando, desativa o clique.
-        onPressed: isLoading ? null : onPressed,
-
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
+          child: isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: Colors.white),
                 ),
-              )
-            : Text(
-                text,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelLarge?.copyWith(color: Colors.white),
-              ),
+        ),
       ),
     );
   }
