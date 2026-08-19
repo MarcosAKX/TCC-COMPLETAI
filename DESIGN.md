@@ -161,9 +161,13 @@ Aberto/fechado com ícone + texto + cor.
 
 ### Dashboard
 
-- seção de preços com fundo neutro; melhor valor usa `savingsSurface` e verde-esmeralda;
-- “Atualizar preços” antes do resumo;
-- contador de alterações dentro da tarefa de preços.
+- abre em **Preços**, a tarefa diária prioritária;
+- navegação usa barra inferior em largura compacta e rail em largura ampliada;
+- destinos: Preços, Informações, Horários e Avaliações;
+- seção de preços com fundo neutro e contador de alterações dentro da tarefa;
+- um único CTA por seção: publicar preços, salvar informações ou salvar horários;
+- cada CTA persiste somente os dados da própria seção;
+- saída com mudanças pendentes oferece continuar editando ou descartá-las.
 
 ## Copy and UX writing
 

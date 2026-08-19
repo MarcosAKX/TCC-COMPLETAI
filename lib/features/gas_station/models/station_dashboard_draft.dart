@@ -24,8 +24,7 @@ class StationDashboardDraft {
 
   bool get hasPriceChanges => !_mapEquals(_savedPrices, _prices);
   bool get hasInformationChanges =>
-      !_setEquals(_savedTags, _tags) ||
-      !_setEquals(_savedServices, _services);
+      !_setEquals(_savedTags, _tags) || !_setEquals(_savedServices, _services);
   bool get hasOpeningHourChanges =>
       !_hoursEqual(_savedOpeningHours, _openingHours);
 
@@ -49,9 +48,7 @@ class StationDashboardDraft {
     _services = {...services};
   }
 
-  void replaceOpeningHours(
-    Map<String, Map<String, dynamic>> openingHours,
-  ) {
+  void replaceOpeningHours(Map<String, Map<String, dynamic>> openingHours) {
     _openingHours = _copyHours(openingHours);
   }
 
@@ -82,9 +79,7 @@ class StationDashboardDraft {
   }
 
   static Map<String, String> _normalizedPrices(Map<String, String> prices) {
-    return prices.map(
-      (key, value) => MapEntry(key, _normalizePrice(value)),
-    );
+    return prices.map((key, value) => MapEntry(key, _normalizePrice(value)));
   }
 
   static String _normalizePrice(String value) {

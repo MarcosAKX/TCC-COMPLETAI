@@ -6,8 +6,11 @@ import '../../../app/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/station_logo.dart';
 import '../../../core/widgets/status_pill.dart';
+import '../models/station_dashboard_draft.dart';
 import '../models/station_review.dart';
 import '../services/gas_station_service.dart';
+
+enum _DashboardSection { prices, information, hours, reviews }
 
 class StationDashboardPage extends StatefulWidget {
   const StationDashboardPage({super.key});
@@ -71,6 +74,8 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
   String _stationName = 'Meu posto';
   String _stationAddress = '';
   DateTime? _lastUpdatedAt;
+  StationDashboardDraft? _draft;
+  _DashboardSection _selectedSection = _DashboardSection.prices;
   bool _isLoading = true;
   bool _isSaving = false;
 
@@ -84,6 +89,9 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
   }
 
   void _handlePriceChanged() {
+    for (final entry in _priceControllers.entries) {
+      _draft?.setPrice(entry.key, entry.value.text);
+    }
     if (mounted) setState(() {});
   }
 
@@ -155,6 +163,16 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
       ..addAll(_stringSet(data['services']));
     _openingHours = _parseOpeningHours(data['openingHours']);
 
+    _draft = StationDashboardDraft(
+      prices: {
+        for (final entry in _priceControllers.entries)
+          entry.key: entry.value.text,
+      },
+      tags: _selectedTags,
+      services: _selectedServices,
+      openingHours: _openingHours,
+    );
+
     final rawUpdatedAt = data['updatedAt'];
     if (rawUpdatedAt is Timestamp) {
       _lastUpdatedAt = rawUpdatedAt.toDate();
@@ -187,7 +205,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
     return defaults;
   }
 
-  Future<void> _saveAdministrativeData() async {
+  Future<void> _savePrices() async {
     final fuelPrices = <String, double>{};
 
     for (final entry in _priceControllers.entries) {
@@ -196,7 +214,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
 
       final price = double.tryParse(rawValue.replaceAll(',', '.'));
       if (price == null || price <= 0 || price > 50) {
-        _showMessage('Confira os preços informados.');
+        _showMessage('Confira o preço de ${_fuelLabels[entry.key]}.');
         return;
       }
       fuelPrices[entry.key] = price;
@@ -205,12 +223,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
     setState(() => _isSaving = true);
 
     try {
-      await _service.updateAdministrativeData(
-        fuelPrices: fuelPrices,
-        tags: _selectedTags,
-        openingHours: _openingHours,
-        services: _selectedServices,
-      );
+      await _service.updateFuelPrices(fuelPrices);
 
       if (!mounted) return;
       setState(() {
@@ -222,18 +235,54 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
               (entry) => MapEntry(entry.key, _normalizePrice(entry.value.text)),
             ),
           );
+        _draft?.markPricesSaved();
       });
-      _showMessage(
-        'Tudo certo. Seus preços já estão visíveis para os clientes.',
-      );
+      _showMessage('Preços publicados.');
     } catch (_) {
       if (mounted) {
-        _showMessage('Não foi possível atualizar o posto.');
+        _showMessage('Não foi possível publicar os preços. Tente novamente.');
       }
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
       }
+    }
+  }
+
+  Future<void> _saveInformation() async {
+    setState(() => _isSaving = true);
+    try {
+      await _service.updateStationInformation(
+        tags: _selectedTags,
+        services: _selectedServices,
+      );
+      if (!mounted) return;
+      setState(() => _draft?.markInformationSaved());
+      _showMessage('Informações salvas.');
+    } catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Não foi possível salvar as informações. Tente novamente.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveOpeningHours() async {
+    setState(() => _isSaving = true);
+    try {
+      await _service.updateOpeningHours(_openingHours);
+      if (!mounted) return;
+      setState(() => _draft?.markOpeningHoursSaved());
+      _showMessage('Horários salvos.');
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Não foi possível salvar os horários. Tente novamente.');
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -254,6 +303,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
 
     setState(() {
       _openingHours[day] = {...schedule, field: _formatTime(selectedTime)};
+      _draft?.replaceOpeningHours(_openingHours);
     });
   }
 
@@ -318,30 +368,178 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: AppTheme.background,
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildTabBar(),
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : TabBarView(
-                        children: [
-                          _buildAdministrationTab(),
-                          _buildReviewsTab(),
-                        ],
-                      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final expanded = constraints.maxWidth >= 840;
+        return PopScope(
+          canPop: !_hasCurrentSectionChanges,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop || !await _confirmDiscardCurrentSection()) return;
+            if (context.mounted) Navigator.of(context).pop(result);
+          },
+          child: Scaffold(
+            backgroundColor: AppTheme.background,
+            body: SafeArea(
+              child: Row(
+                children: [
+                  if (expanded) _buildNavigationRail(),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildHeader(),
+                        Expanded(
+                          child: _isLoading
+                              ? const Center(child: CircularProgressIndicator())
+                              : _buildCurrentSection(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+            bottomNavigationBar: expanded ? null : _buildNavigationBar(),
           ),
+        );
+      },
+    );
+  }
+
+  bool get _hasCurrentSectionChanges {
+    final draft = _draft;
+    if (draft == null) return false;
+    return switch (_selectedSection) {
+      _DashboardSection.prices => draft.hasPriceChanges,
+      _DashboardSection.information => draft.hasInformationChanges,
+      _DashboardSection.hours => draft.hasOpeningHourChanges,
+      _DashboardSection.reviews => false,
+    };
+  }
+
+  Widget _buildCurrentSection() {
+    return switch (_selectedSection) {
+      _DashboardSection.prices => _buildPricesSection(),
+      _DashboardSection.information => _buildInformationSection(),
+      _DashboardSection.hours => _buildHoursSection(),
+      _DashboardSection.reviews => _buildReviewsTab(),
+    };
+  }
+
+  Widget _buildNavigationBar() {
+    return NavigationBar(
+      selectedIndex: _selectedSection.index,
+      onDestinationSelected: _isSaving ? null : _selectSection,
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.local_gas_station_outlined),
+          selectedIcon: Icon(Icons.local_gas_station_rounded),
+          label: 'Preços',
         ),
+        NavigationDestination(
+          icon: Icon(Icons.storefront_outlined),
+          selectedIcon: Icon(Icons.storefront_rounded),
+          label: 'Informações',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.schedule_outlined),
+          selectedIcon: Icon(Icons.schedule_rounded),
+          label: 'Horários',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.star_outline_rounded),
+          selectedIcon: Icon(Icons.star_rounded),
+          label: 'Avaliações',
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNavigationRail() {
+    return NavigationRail(
+      selectedIndex: _selectedSection.index,
+      onDestinationSelected: _isSaving ? null : _selectSection,
+      labelType: NavigationRailLabelType.all,
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.local_gas_station_outlined),
+          selectedIcon: Icon(Icons.local_gas_station_rounded),
+          label: Text('Preços'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.storefront_outlined),
+          selectedIcon: Icon(Icons.storefront_rounded),
+          label: Text('Informações'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.schedule_outlined),
+          selectedIcon: Icon(Icons.schedule_rounded),
+          label: Text('Horários'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.star_outline_rounded),
+          selectedIcon: Icon(Icons.star_rounded),
+          label: Text('Avaliações'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectSection(int index) async {
+    final next = _DashboardSection.values[index];
+    if (next == _selectedSection) return;
+    if (!await _confirmDiscardCurrentSection()) return;
+    if (mounted) setState(() => _selectedSection = next);
+  }
+
+  Future<bool> _confirmDiscardCurrentSection() async {
+    if (!_hasCurrentSectionChanges) return true;
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Descartar alterações?'),
+        content: const Text('As mudanças desta área ainda não foram salvas.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Continuar editando'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Descartar alterações'),
+          ),
+        ],
       ),
     );
+    if (discard != true) return false;
+    _restoreCurrentSection();
+    return true;
+  }
+
+  void _restoreCurrentSection() {
+    final draft = _draft;
+    if (draft == null) return;
+    setState(() {
+      switch (_selectedSection) {
+        case _DashboardSection.prices:
+          draft.restorePrices();
+          for (final entry in _priceControllers.entries) {
+            entry.value.text = draft.priceFor(entry.key);
+          }
+        case _DashboardSection.information:
+          draft.restoreInformation();
+          _selectedTags
+            ..clear()
+            ..addAll(draft.tags);
+          _selectedServices
+            ..clear()
+            ..addAll(draft.services);
+        case _DashboardSection.hours:
+          draft.restoreOpeningHours();
+          _openingHours = draft.openingHours;
+        case _DashboardSection.reviews:
+          break;
+      }
+    });
   }
 
   Widget _buildHeader() {
@@ -410,29 +608,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      color: AppTheme.background,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 980),
-          child: TabBar(
-            indicatorColor: AppTheme.primary,
-            indicatorWeight: 3,
-            labelColor: AppTheme.primary,
-            unselectedLabelColor: AppTheme.textMuted,
-            dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(icon: Icon(Icons.dashboard_outlined), text: 'Administração'),
-              Tab(icon: Icon(Icons.star_outline_rounded), text: 'Avaliações'),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdministrationTab() {
+  Widget _buildPricesSection() {
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
@@ -463,53 +639,105 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                 _buildPricesCard(),
                 const SizedBox(height: 20),
                 _buildStationSummary(),
-                const SizedBox(height: 20),
-                _buildTagsCard(),
-                const SizedBox(height: 20),
-                _buildServicesCard(),
-                const SizedBox(height: 20),
-                _buildOpeningHoursCard(),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 54,
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSaving ? null : _saveAdministrativeData,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppTheme.primary.withValues(
-                        alpha: 0.55,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                    ),
-                    icon: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Icon(Icons.save_outlined),
-                    label: Text(
-                      _isSaving ? 'Salvando...' : 'Salvar alterações',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 22),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildInformationSection() {
+    return _buildSectionList(
+      title: 'Informações do posto',
+      subtitle: 'Mantenha características e serviços fáceis de consultar.',
+      children: [
+        _buildStationSummary(),
+        const SizedBox(height: 20),
+        _buildTagsCard(),
+        const SizedBox(height: 20),
+        _buildServicesCard(),
+        const SizedBox(height: 20),
+        _buildSaveButton(
+          label: 'Salvar informações',
+          enabled: _draft?.hasInformationChanges == true,
+          onPressed: _saveInformation,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHoursSection() {
+    return _buildSectionList(
+      title: 'Horários de funcionamento',
+      subtitle: 'Informe quando os clientes podem encontrar o posto aberto.',
+      children: [
+        _buildOpeningHoursCard(),
+        const SizedBox(height: 20),
+        _buildSaveButton(
+          label: 'Salvar horários',
+          enabled: _draft?.hasOpeningHourChanges == true,
+          onPressed: _saveOpeningHours,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionList({
+    required String title,
+    required String subtitle,
+    required List<Widget> children,
+  }) {
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+                const SizedBox(height: 16),
+                ...children,
+                const SizedBox(height: 22),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton({
+    required String label,
+    required bool enabled,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: FilledButton.icon(
+        onPressed: !_isSaving && enabled ? onPressed : null,
+        icon: _isSaving
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : const Icon(Icons.save_outlined),
+        label: Text(_isSaving ? 'Salvando...' : label),
+      ),
     );
   }
 
@@ -665,7 +893,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                   child: FilledButton.icon(
                     onPressed: _isSaving || _changedPriceCount == 0
                         ? null
-                        : _saveAdministrativeData,
+                        : _savePrices,
                     icon: _isSaving
                         ? const SizedBox.square(
                             dimension: 18,
@@ -676,7 +904,11 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                           )
                         : const Icon(Icons.publish_outlined),
                     label: Text(
-                      _isSaving ? 'Publicando...' : 'Publicar novos preços',
+                      _isSaving
+                          ? 'Publicando...'
+                          : _changedPriceCount == 1
+                          ? 'Publicar preço'
+                          : 'Publicar $_changedPriceCount preços',
                     ),
                   ),
                 ),
@@ -707,6 +939,10 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
             onSelected: (value) {
               setState(() {
                 value ? _selectedTags.add(tag) : _selectedTags.remove(tag);
+                _draft?.replaceInformation(
+                  tags: _selectedTags,
+                  services: _selectedServices,
+                );
               });
             },
             selectedColor: AppTheme.primary.withValues(alpha: 0.2),
@@ -746,6 +982,10 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                       selected
                           ? _selectedServices.remove(service)
                           : _selectedServices.add(service);
+                      _draft?.replaceInformation(
+                        tags: _selectedTags,
+                        services: _selectedServices,
+                      );
                     });
                   },
                   child: AnimatedContainer(
@@ -840,6 +1080,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                               ...schedule,
                               'enabled': value,
                             };
+                            _draft?.replaceOpeningHours(_openingHours);
                           });
                         },
                       ),

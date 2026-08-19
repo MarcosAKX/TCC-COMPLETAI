@@ -22,4 +22,8 @@ void main() {
   test('serviço expõe atualização parcial de horários', () {
     expect(source, contains('Future<void> updateOpeningHours('));
   });
+
+  test('serviço não mantém salvamento administrativo agregado', () {
+    expect(source, isNot(contains('Future<void> updateAdministrativeData(')));
+  });
 }

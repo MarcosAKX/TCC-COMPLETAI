@@ -97,10 +97,7 @@ class GasStationService {
     final sortedTags = tags.toList()..sort();
     final sortedServices = services.toList()..sort();
     await _updateAdministrativeFields(
-      privateUpdates: {
-        'tags': sortedTags,
-        'services': sortedServices,
-      },
+      privateUpdates: {'tags': sortedTags, 'services': sortedServices},
       tags: sortedTags,
       services: sortedServices,
     );
@@ -150,57 +147,6 @@ class GasStationService {
     final batch = _firestore.batch();
     batch.update(privateReference, {
       ...privateUpdates,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    batch.set(publicReference, publicData, SetOptions(merge: true));
-    await batch.commit();
-  }
-
-  Future<void> updateAdministrativeData({
-    required Map<String, double> fuelPrices,
-    required Set<String> tags,
-    required Map<String, Map<String, dynamic>> openingHours,
-    required Set<String> services,
-  }) async {
-    if (fuelPrices.values.any((price) => price <= 0 || price > 50)) {
-      throw ArgumentError('Informe preços válidos para os combustíveis.');
-    }
-
-    final privateReference = _currentStationReference();
-    final publicReference = _firestore
-        .collection('public_stations')
-        .doc(privateReference.id);
-    final documents = await Future.wait([
-      privateReference.get(),
-      publicReference.get(),
-    ]);
-    final privateDocument = documents[0];
-    final publicDocument = documents[1];
-    final stationData = privateDocument.data();
-    if (stationData == null) {
-      throw StateError('Perfil do posto não encontrado.');
-    }
-
-    final sortedTags = tags.toList()..sort();
-    final sortedServices = services.toList()..sort();
-    final publicData = _buildPublicStationData(
-      stationData,
-      fuelPrices: fuelPrices,
-      tags: sortedTags,
-      services: sortedServices,
-      openingHours: openingHours,
-    );
-    publicData['updatedAt'] = FieldValue.serverTimestamp();
-    if (!publicDocument.exists) {
-      publicData['createdAt'] = FieldValue.serverTimestamp();
-    }
-
-    final batch = _firestore.batch();
-    batch.update(privateReference, {
-      'fuelPrices': fuelPrices,
-      'tags': sortedTags,
-      'openingHours': openingHours,
-      'services': sortedServices,
       'updatedAt': FieldValue.serverTimestamp(),
     });
     batch.set(publicReference, publicData, SetOptions(merge: true));
