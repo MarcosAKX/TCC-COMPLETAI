@@ -229,80 +229,27 @@ class _StationListPageState extends State<StationListPage> {
             child: FutureBuilder<List<PublicGasStation>>(
               future: _stationsFuture,
               builder: (context, snapshot) {
-                final allStations = snapshot.data ?? const <PublicGasStation>[];
-                return Column(
-                  children: [
-                    WelcomeSummaryHeader(
-                      stationCount: allStations.length,
-                      onLocationTap: _showLocationInfo,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (_) => setState(() {}),
-                        textInputAction: TextInputAction.search,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar posto ou bairro',
-                          prefixIcon: const Icon(Icons.search_rounded),
-                          suffixIcon: _searchController.text.isEmpty
-                              ? null
-                              : IconButton(
-                                  tooltip: 'Limpar busca',
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {});
-                                  },
-                                  icon: const Icon(Icons.close_rounded),
-                                ),
-                        ),
-                      ),
-                    ),
-                    FuelSwipeSurface(
-                      choice: _fuel,
-                      onChanged: _changeFuel,
-                      child: FuelChoiceSelector(
-                        choice: _fuel,
-                        onChanged: _changeFuel,
-                      ),
-                    ),
-                    if (_showFuelTip)
-                      FuelDiscoveryTip(onDismiss: _dismissFuelTip),
-                    Material(
-                      color: AppTheme.discoveryBackground,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 2),
-                        child: Row(
-                          children: [
-                            const Text('Só abertos'),
-                            Switch.adaptive(
-                              value: _onlyOpen,
-                              onChanged: (value) =>
-                                  setState(() => _onlyOpen = value),
-                            ),
-                            const Spacer(),
-                            OutlinedButton.icon(
-                              onPressed: _showFilters,
-                              icon: const Icon(Icons.tune_rounded, size: 18),
-                              label: Text(
-                                _minimumRatingFour ? 'Filtros (1)' : 'Filtros',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: FuelSwipeSurface(
-                        choice: _fuel,
-                        onChanged: _changeFuel,
-                        child: ColoredBox(
-                          color: AppTheme.discoveryBackground,
-                          child: _buildResults(snapshot, allStations),
-                        ),
-                      ),
-                    ),
-                  ],
+                return StationDiscoveryContent(
+                  snapshot: snapshot,
+                  searchController: _searchController,
+                  fuel: _fuel,
+                  onlyOpen: _onlyOpen,
+                  minimumRatingFour: _minimumRatingFour,
+                  showFuelTip: _showFuelTip,
+                  onRefresh: _refresh,
+                  onRetry: _reload,
+                  onLocationTap: _showLocationInfo,
+                  onSearchChanged: (_) => setState(() {}),
+                  onClearSearch: () {
+                    _searchController.clear();
+                    setState(() {});
+                  },
+                  onFuelChanged: _changeFuel,
+                  onDismissFuelTip: _dismissFuelTip,
+                  onOnlyOpenChanged: (value) =>
+                      setState(() => _onlyOpen = value),
+                  onShowFilters: _showFilters,
+                  onOpenStation: _openStation,
                 );
               },
             ),
@@ -311,71 +258,192 @@ class _StationListPageState extends State<StationListPage> {
       ),
     );
   }
+}
 
-  Widget _buildResults(
-    AsyncSnapshot<List<PublicGasStation>> snapshot,
-    List<PublicGasStation> allStations,
-  ) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (snapshot.hasError) {
-      return _MessageState(
-        icon: Icons.cloud_off_rounded,
-        title: 'Não foi possível carregar os postos',
-        subtitle: 'Confira sua conexão e tente novamente.',
-        actionLabel: 'Tentar novamente',
-        onAction: _reload,
-      );
-    }
+class StationDiscoveryContent extends StatelessWidget {
+  final AsyncSnapshot<List<PublicGasStation>> snapshot;
+  final TextEditingController searchController;
+  final FuelChoice fuel;
+  final bool onlyOpen;
+  final bool minimumRatingFour;
+  final bool showFuelTip;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function() onRetry;
+  final VoidCallback onLocationTap;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback onClearSearch;
+  final ValueChanged<FuelChoice> onFuelChanged;
+  final VoidCallback onDismissFuelTip;
+  final ValueChanged<bool> onOnlyOpenChanged;
+  final VoidCallback onShowFilters;
+  final ValueChanged<PublicGasStation> onOpenStation;
+  final DateTime? currentTime;
 
-    final now = DateTime.now();
-    final stations = filterAndSortStations(
-      allStations,
-      _fuel,
-      onlyOpen: _onlyOpen,
-      moment: now,
-      query: _searchController.text,
-      minimumRating: _minimumRatingFour ? 4 : null,
-    );
-    if (stations.isEmpty) {
-      return _MessageState(
-        icon: Icons.local_gas_station_outlined,
-        title: _onlyOpen
-            ? 'Nenhum posto aberto encontrado'
-            : 'Nenhum posto encontrado',
-        subtitle: _onlyOpen
-            ? 'Desative “Só abertos” para ver todos os postos.'
-            : 'Tente outro nome ou bairro.',
-        actionLabel: _onlyOpen ? 'Mostrar todos' : null,
-        onAction: _onlyOpen
-            ? () async => setState(() => _onlyOpen = false)
-            : null,
-      );
-    }
+  const StationDiscoveryContent({
+    super.key,
+    required this.snapshot,
+    required this.searchController,
+    required this.fuel,
+    required this.onlyOpen,
+    required this.minimumRatingFour,
+    required this.showFuelTip,
+    required this.onRefresh,
+    required this.onRetry,
+    required this.onLocationTap,
+    required this.onSearchChanged,
+    required this.onClearSearch,
+    required this.onFuelChanged,
+    required this.onDismissFuelTip,
+    required this.onOnlyOpenChanged,
+    required this.onShowFilters,
+    required this.onOpenStation,
+    this.currentTime,
+  });
 
-    final bestId = bestPricedStationId(stations, _fuel);
-    final savings = savingsPerLiter(stations, _fuel);
-    return RefreshIndicator.adaptive(
-      onRefresh: _refresh,
-      child: ListView.separated(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-        itemCount: stations.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-        itemBuilder: (context, index) {
-          final station = stations[index];
-          return DiscoveryStationCard(
-            station: station,
-            fuel: _fuel,
-            isBestValue: station.id == bestId,
-            savingsPerLiter: station.id == bestId ? savings : null,
-            isOpen: station.isOpenAt(now),
-            onOpen: () => _openStation(station),
-          );
-        },
+  @override
+  Widget build(BuildContext context) {
+    final allStations = snapshot.data ?? const <PublicGasStation>[];
+    return ColoredBox(
+      color: AppTheme.discoveryBackground,
+      child: FuelSwipeSurface(
+        choice: fuel,
+        onChanged: onFuelChanged,
+        child: RefreshIndicator.adaptive(
+          onRefresh: onRefresh,
+          child: ListView(
+            key: const Key('station-discovery-scroll'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(bottom: 28),
+            children: [
+              WelcomeSummaryHeader(
+                stationCount: allStations.length,
+                onLocationTap: onLocationTap,
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: TextField(
+                  controller: searchController,
+                  onChanged: onSearchChanged,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar posto ou bairro',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Limpar busca',
+                            onPressed: onClearSearch,
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                ),
+              ),
+              FuelChoiceSelector(choice: fuel, onChanged: onFuelChanged),
+              if (showFuelTip) FuelDiscoveryTip(onDismiss: onDismissFuelTip),
+              Material(
+                color: AppTheme.discoveryBackground,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Flexible(child: Text('Só abertos')),
+                          Switch.adaptive(
+                            value: onlyOpen,
+                            onChanged: onOnlyOpenChanged,
+                          ),
+                        ],
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: onShowFilters,
+                        icon: const Icon(Icons.tune_rounded, size: 18),
+                        label: Text(
+                          minimumRatingFour ? 'Filtros (1)' : 'Filtros',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              ..._buildResults(allStations),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  List<Widget> _buildResults(List<PublicGasStation> allStations) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const [
+        SizedBox(
+          height: 180,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ];
+    }
+    if (snapshot.hasError) {
+      return [
+        _MessageState(
+          icon: Icons.cloud_off_rounded,
+          title: 'Não foi possível carregar os postos',
+          subtitle: 'Confira sua conexão e tente novamente.',
+          actionLabel: 'Tentar novamente',
+          onAction: onRetry,
+        ),
+      ];
+    }
+
+    final now = currentTime ?? DateTime.now();
+    final stations = filterAndSortStations(
+      allStations,
+      fuel,
+      onlyOpen: onlyOpen,
+      moment: now,
+      query: searchController.text,
+      minimumRating: minimumRatingFour ? 4 : null,
+    );
+    if (stations.isEmpty) {
+      return [
+        _MessageState(
+          icon: Icons.local_gas_station_outlined,
+          title: onlyOpen
+              ? 'Nenhum posto aberto encontrado'
+              : 'Nenhum posto encontrado',
+          subtitle: onlyOpen
+              ? 'Desative “Só abertos” para ver todos os postos.'
+              : 'Tente outro nome ou bairro.',
+          actionLabel: onlyOpen ? 'Mostrar todos' : null,
+          onAction: onlyOpen ? () async => onOnlyOpenChanged(false) : null,
+        ),
+      ];
+    }
+
+    final bestId = bestPricedStationId(stations, fuel);
+    final savings = savingsPerLiter(stations, fuel);
+    return [
+      for (var index = 0; index < stations.length; index++) ...[
+        if (index > 0) const SizedBox(height: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: DiscoveryStationCard(
+            key: Key('discovery-station-${stations[index].id}'),
+            station: stations[index],
+            fuel: fuel,
+            isBestValue: stations[index].id == bestId,
+            savingsPerLiter: stations[index].id == bestId ? savings : null,
+            isOpen: stations[index].isOpenAt(now),
+            onOpen: () => onOpenStation(stations[index]),
+          ),
+        ),
+      ],
+    ];
   }
 }
 

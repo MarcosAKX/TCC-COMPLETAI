@@ -36,81 +36,80 @@ class DiscoveryStationCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onOpen,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (isBestValue)
-                const ColoredBox(
-                  key: Key('station-card-accent'),
-                  color: AppTheme.primary,
-                  child: SizedBox(width: 4),
-                ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    isBestValue ? 14 : 16,
-                    14,
-                    14,
-                    13,
-                  ),
-                  child: Column(
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(isBestValue ? 18 : 16, 14, 14, 13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isBestValue) ...[
+                    _DecisionHeader(
+                      fuel: fuel,
+                      savingsPerLiter: savingsPerLiter,
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (isBestValue) ...[
-                        _DecisionHeader(
-                          fuel: fuel,
-                          savingsPerLiter: savingsPerLiter,
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StationLogo(stationName: station.name, size: 46),
-                          const SizedBox(width: 11),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      StationLogo(stationName: station.name, size: 46),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
                                 Text(
                                   station.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.titleMedium,
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  station.neighborhood.isEmpty
-                                      ? station.city
-                                      : station.neighborhood,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.labelSmall,
-                                ),
+                                StatusPill(isOpen: isOpen, compact: true),
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          StatusPill(isOpen: isOpen, compact: true),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              station.neighborhood.isEmpty
+                                  ? station.city
+                                  : station.neighborhood,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall,
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      FuelPriceGrid(
-                        prices: station.fuelPrices,
-                        selectedFuel: fuel,
-                        bestValueKeys: isBestValue ? {fuel.fuelKey} : const {},
-                      ),
-                      const SizedBox(height: 10),
-                      _StationTrustLine(station: station),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  FuelPriceGrid(
+                    prices: station.fuelPrices,
+                    selectedFuel: fuel,
+                    bestValueKeys: isBestValue ? {fuel.fuelKey} : const {},
+                  ),
+                  const SizedBox(height: 10),
+                  _StationTrustLine(station: station),
+                ],
+              ),
+            ),
+            if (isBestValue)
+              const Positioned(
+                top: 0,
+                bottom: 0,
+                left: 0,
+                child: ColoredBox(
+                  key: Key('station-card-accent'),
+                  color: AppTheme.primary,
+                  child: SizedBox(width: 4),
                 ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -131,33 +130,43 @@ class _DecisionHeader extends StatelessWidget {
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppTheme.outline)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
+      child: LayoutBuilder(
+        builder: (context, constraints) => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
               'Menor preço de ${fuel.label}',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-          if (savings != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppTheme.savingsSurface,
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Text(
-                'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.savings,
-                  fontWeight: FontWeight.w700,
+            if (savings != null)
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.savingsSurface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.savings,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -174,14 +183,16 @@ class _StationTrustLine extends StatelessWidget {
         ? 'Sem avaliações'
         : '${station.averageRating.toStringAsFixed(1)} · ${station.reviewCount} avaliações';
     final freshness = _freshness(station.updatedAt, DateTime.now());
-    return Wrap(
-      spacing: 12,
-      runSpacing: 7,
-      children: [
-        _MetaItem(icon: Icons.star_rounded, text: rating, rating: true),
-        if (freshness != null)
-          _MetaItem(icon: Icons.schedule_rounded, text: freshness),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) => Wrap(
+        spacing: 12,
+        runSpacing: 7,
+        children: [
+          _MetaItem(icon: Icons.star_rounded, text: rating, rating: true),
+          if (freshness != null)
+            _MetaItem(icon: Icons.schedule_rounded, text: freshness),
+        ],
+      ),
     );
   }
 
@@ -223,7 +234,9 @@ class _MetaItem extends StatelessWidget {
           color: rating ? AppTheme.rating : AppTheme.textMuted,
         ),
         const SizedBox(width: 4),
-        Text(text, style: Theme.of(context).textTheme.labelSmall),
+        Flexible(
+          child: Text(text, style: Theme.of(context).textTheme.labelSmall),
+        ),
       ],
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../features/user/models/station_discovery_filter.dart';
@@ -23,24 +25,49 @@ class FuelPriceGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (var index = 0; index < _fuels.length; index++) ...[
-            if (index > 0) const SizedBox(width: 6),
-            Expanded(
-              child: _FuelPriceCell(
-                fuelKey: _fuels[index].$1,
-                label: _fuels[index].$2,
-                price: _validPrice(prices[_fuels[index].$1]),
-                selected: selectedFuel?.fuelKey == _fuels[index].$1,
-                bestValue: bestValueKeys.contains(_fuels[index].$1),
-              ),
-            ),
-          ],
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final readableCellWidth = math.max(
+          82.0,
+          MediaQuery.textScalerOf(context).scale(72),
+        );
+        final useVerticalLayout =
+            constraints.maxWidth < readableCellWidth * _fuels.length + 12;
+        if (useVerticalLayout) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < _fuels.length; index++) ...[
+                if (index > 0) const SizedBox(height: 6),
+                _buildCell(index),
+              ],
+            ],
+          );
+        }
+
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var index = 0; index < _fuels.length; index++) ...[
+                if (index > 0) const SizedBox(width: 6),
+                Expanded(child: _buildCell(index)),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCell(int index) {
+    final fuel = _fuels[index];
+    return _FuelPriceCell(
+      fuelKey: fuel.$1,
+      label: fuel.$2,
+      price: _validPrice(prices[fuel.$1]),
+      selected: selectedFuel?.fuelKey == fuel.$1,
+      bestValue: bestValueKeys.contains(fuel.$1),
     );
   }
 
@@ -100,8 +127,6 @@ class _FuelPriceCell extends StatelessWidget {
             children: [
               Text(
                 label.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -110,8 +135,6 @@ class _FuelPriceCell extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 formatted,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: AppTheme.priceStyle(
                   fontSize: price == null ? 11 : 16,
                   fontWeight: FontWeight.w800,
@@ -122,8 +145,6 @@ class _FuelPriceCell extends StatelessWidget {
                 const SizedBox(height: 3),
                 const Text(
                   'Melhor valor',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppTheme.savings,
                     fontSize: 9,

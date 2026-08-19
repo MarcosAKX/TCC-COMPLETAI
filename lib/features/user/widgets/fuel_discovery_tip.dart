@@ -57,6 +57,10 @@ class FuelDiscoveryTip extends StatelessWidget {
                     onPressed: onDismiss,
                     icon: const Icon(Icons.close_rounded),
                     color: AppTheme.primary,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
                   ),
                 ],
               ),

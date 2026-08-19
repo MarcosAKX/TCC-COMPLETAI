@@ -32,25 +32,29 @@ class WelcomeSummaryHeader extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 7),
-            TextButton.icon(
-              onPressed: onLocationTap,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 5),
-                minimumSize: const Size(48, 40),
-                foregroundColor: AppTheme.textMuted,
-              ),
-              icon: const Icon(
-                Icons.location_on_outlined,
-                size: 18,
-                color: AppTheme.primary,
-              ),
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(countText),
-                  if (onLocationTap != null)
-                    const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
-                ],
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: onLocationTap,
+                style: TextButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  minimumSize: const Size(48, 48),
+                  foregroundColor: AppTheme.textMuted,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 18,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(countText)),
+                    if (onLocationTap != null)
+                      const Icon(Icons.keyboard_arrow_down_rounded, size: 18),
+                  ],
+                ),
               ),
             ),
           ],
