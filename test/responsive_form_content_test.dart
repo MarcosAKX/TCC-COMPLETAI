@@ -2,6 +2,8 @@ import 'package:completai_app/core/widgets/responsive_form_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/adaptive_test_harness.dart';
+
 void main() {
   testWidgets('form content stays centered and capped on wide screens', (
     tester,
@@ -33,12 +35,8 @@ void main() {
   });
 
   testWidgets('form content keeps equal mobile insets', (tester) async {
-    tester.view.physicalSize = const Size(360, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
+    await pumpAdaptive(
+      tester,
       const MaterialApp(
         home: Scaffold(
           body: ResponsiveFormContent(
@@ -46,6 +44,7 @@ void main() {
           ),
         ),
       ),
+      adaptiveLargeText,
     );
 
     expect(
