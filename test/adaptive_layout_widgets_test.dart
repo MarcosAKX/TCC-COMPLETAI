@@ -116,71 +116,91 @@ void main() {
     expectNoLayoutExceptions(tester);
   });
 
-  testWidgets('adaptive action row keeps children in a row on wide landscape', (
-    tester,
-  ) async {
-    await pumpAdaptive(
-      tester,
-      MaterialApp(
-        home: Scaffold(
-          body: AdaptiveActionRow(
-            children: const [
-              SizedBox(key: Key('primary-action')),
-              SizedBox(key: Key('secondary-action')),
-            ],
+  testWidgets(
+    'adaptive action row keeps fitting children horizontal on wide landscape',
+    (tester) async {
+      await pumpAdaptive(
+        tester,
+        MaterialApp(
+          home: Scaffold(
+            body: AdaptiveActionRow(
+              children: const [
+                SizedBox(key: Key('primary-action')),
+                SizedBox(key: Key('secondary-action')),
+              ],
+            ),
           ),
         ),
-      ),
-      adaptiveLandscape,
-    );
+        adaptiveLandscape,
+      );
 
-    expect(find.byType(Row), findsOneWidget);
-    expect(find.byType(Column), findsNothing);
-    expect(
-      tester.getSize(find.byKey(const Key('primary-action'))),
-      const Size(48, 48),
-    );
-    expect(
-      tester.getSize(find.byKey(const Key('secondary-action'))),
-      const Size(48, 48),
-    );
-    expectNoLayoutExceptions(tester);
-  });
+      expect(find.byType(OverflowBar), findsOneWidget);
+      expect(find.byType(Column), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const Key('primary-action'))),
+        const Size(48, 48),
+      );
+      expect(
+        tester.getSize(find.byKey(const Key('secondary-action'))),
+        const Size(48, 48),
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const Key('primary-action'))).dy,
+        tester.getTopLeft(find.byKey(const Key('secondary-action'))).dy,
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const Key('primary-action'))).dx,
+        lessThan(
+          tester.getTopLeft(find.byKey(const Key('secondary-action'))).dx,
+        ),
+      );
+      expectNoLayoutExceptions(tester);
+    },
+  );
 
-  testWidgets('adaptive action row stacks scaled labels before they overflow', (
-    tester,
-  ) async {
-    const largeTextMidWidth = AdaptiveTestScenario(
-      name: '560x800 @ 2.0',
-      size: Size(560, 800),
-      textScaleFactor: 2,
-    );
+  testWidgets(
+    'adaptive action row reflows long scaled labels at exactly 600 dp',
+    (tester) async {
+      const largeTextMidWidth = AdaptiveTestScenario(
+        name: '600x800 @ 2.0',
+        size: Size(600, 800),
+        textScaleFactor: 2,
+      );
 
-    await pumpAdaptive(
-      tester,
-      MaterialApp(
-        home: Scaffold(
-          body: AdaptiveActionRow(
-            children: [
-              FilledButton(
-                onPressed: () {},
-                child: const Text('Salvar todas as alteracoes'),
-              ),
-              FilledButton(
-                onPressed: () {},
-                child: const Text('Cancelar e voltar'),
-              ),
-            ],
+      await pumpAdaptive(
+        tester,
+        MaterialApp(
+          home: Scaffold(
+            body: AdaptiveActionRow(
+              children: [
+                FilledButton(
+                  key: const Key('large-primary-action'),
+                  onPressed: () {},
+                  child: const Text('Salvar todas as alteracoes'),
+                ),
+                FilledButton(
+                  key: const Key('large-secondary-action'),
+                  onPressed: () {},
+                  child: const Text('Cancelar e voltar'),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-      largeTextMidWidth,
-    );
+        largeTextMidWidth,
+      );
 
-    expect(find.byType(Column), findsOneWidget);
-    expect(find.byType(Row), findsNothing);
-    expectNoLayoutExceptions(tester);
-  });
+      expect(find.byType(OverflowBar), findsOneWidget);
+      expect(find.byType(Row), findsNothing);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('large-primary-action'))).dy,
+        lessThan(
+          tester.getTopLeft(find.byKey(const Key('large-secondary-action'))).dy,
+        ),
+      );
+      expectNoLayoutExceptions(tester);
+    },
+  );
 
   testWidgets('responsive content keeps the final child above the keyboard', (
     tester,

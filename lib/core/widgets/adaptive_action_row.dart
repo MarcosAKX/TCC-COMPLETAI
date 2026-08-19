@@ -16,34 +16,41 @@ class AdaptiveActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final textScale = MediaQuery.textScalerOf(context).scale(1);
-        final scaledBreakpoint = breakpoint + (textScale - 1).clamp(0, 1) * 80;
-
-        if (constraints.maxWidth < scaledBreakpoint) {
+        if (constraints.maxWidth < breakpoint) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: _withSpacing(Axis.vertical),
+            children: _stackedChildren(),
           );
         }
 
-        return Row(children: _withSpacing(Axis.horizontal));
+        return OverflowBar(
+          alignment: MainAxisAlignment.start,
+          spacing: spacing,
+          overflowAlignment: OverflowBarAlignment.start,
+          overflowSpacing: spacing,
+          children: _constrainedChildren(),
+        );
       },
     );
   }
 
-  List<Widget> _withSpacing(Axis axis) {
+  List<Widget> _stackedChildren() {
     return [
       for (var index = 0; index < children.length; index++) ...[
-        if (index > 0)
-          SizedBox(
-            width: axis == Axis.horizontal ? spacing : null,
-            height: axis == Axis.vertical ? spacing : null,
-          ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          child: children[index],
-        ),
+        if (index > 0) SizedBox(height: spacing),
+        _constrain(children[index]),
       ],
     ];
+  }
+
+  List<Widget> _constrainedChildren() {
+    return [for (final child in children) _constrain(child)];
+  }
+
+  Widget _constrain(Widget child) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      child: child,
+    );
   }
 }
