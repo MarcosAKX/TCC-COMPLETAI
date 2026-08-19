@@ -52,6 +52,31 @@ void main() {
     expect(media.data.textScaler.scale(10), 13);
   });
 
+  testWidgets('harness aplica e restaura insets de teclado', (tester) async {
+    final originalInsets = tester.view.viewInsets;
+    addTearDown(() {
+      expect(tester.view.viewInsets, originalInsets);
+    });
+    const scenario = AdaptiveTestScenario(
+      name: '320x568 @ 1.0 com teclado',
+      size: Size(320, 568),
+      textScaleFactor: 1,
+      viewInsets: EdgeInsets.only(bottom: 240),
+    );
+
+    await pumpAdaptive(
+      tester,
+      const Directionality(
+        textDirection: TextDirection.ltr,
+        child: Text('Teste'),
+      ),
+      scenario,
+    );
+
+    final media = tester.widget<MediaQuery>(find.byType(MediaQuery).last);
+    expect(media.data.viewInsets.bottom, 240);
+  });
+
   testWidgets('harness restaura a view ao desmontar o teste', (tester) async {
     final originalSize = tester.view.physicalSize;
     final originalDevicePixelRatio = tester.view.devicePixelRatio;

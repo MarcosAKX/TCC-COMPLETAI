@@ -31,3 +31,11 @@ O caminho usual do executável Flutter ficou bloqueado neste ambiente; foi conto
 ## Commit
 
 Commit criado: `test(ui): add adaptive scenario harness`.
+
+## Follow-up — cobertura de `viewInsets`
+
+Adicionado teste de regressão com `EdgeInsets.only(bottom: 240)`, verificando `MediaQueryData.viewInsets.bottom` e a restauração de `tester.view.viewInsets` via teardown. O helper já aplicava/restaurava corretamente os insets; portanto, o novo teste passou no baseline e não exigiu mudança de produção (evidência: não houve falha RED legítima a corrigir).
+
+Comando focado (snapshot direto): `dart.exe flutter_tools.snapshot test --no-pub test/adaptive_test_harness_test.dart` — `00:00 +6: All tests passed!`.
+
+Suíte completa relevante: `dart.exe flutter_tools.snapshot test --no-pub` — `00:05 +66: All tests passed!`.
