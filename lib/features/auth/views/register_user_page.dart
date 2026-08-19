@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/widgets/responsive_form_content.dart';
+import '../../../../core/widgets/responsive_content.dart';
 import '../../user/views/station_list_page.dart';
 import '../viewmodels/register_user_viewmodel.dart';
 import 'package:flutter/services.dart';
@@ -140,103 +140,105 @@ class _RegisterUserPageState extends State<RegisterUserPage> {
 
       appBar: AppBar(title: const Text('Cadastro - Usuário')),
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ResponsiveFormContent(
-            child: Column(
-              children: [
-                const Icon(
-                  Icons.person_add_alt_1_rounded,
-                  size: 52,
-                  color: AppTheme.primary,
-                ),
+      body: ResponsiveContent(
+        maxWidth: 440,
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        scrollable: true,
+        child: Column(
+          children: [
+            const Icon(
+              Icons.person_add_alt_1_rounded,
+              size: 52,
+              color: AppTheme.primary,
+            ),
 
-                const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-                const Text(
-                  'Torne-se um Usuário',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textLight,
-                  ),
-                ),
+            Text(
+              'Torne-se um Usuário',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textLight,
+              ),
+            ),
 
-                const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-                const Text(
-                  'Junte-se ao Completai! e economize agora.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.textMuted),
-                ),
+            Text(
+              'Junte-se ao Completai! e economize agora.',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+            ),
 
-                const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-                CustomTextField(
-                  label: 'Nome completo',
-                  hint: 'Nome completo',
-                  icon: Icons.person_outline,
-                  controller: _nameController,
-                ),
+            CustomTextField(
+              label: 'Nome completo',
+              hint: 'Nome completo',
+              icon: Icons.person_outline,
+              controller: _nameController,
+            ),
 
-                const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-                CustomTextField(
-                  label: 'E-mail',
-                  hint: 'E-mail',
-                  icon: Icons.email_outlined,
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                ),
+            CustomTextField(
+              label: 'E-mail',
+              hint: 'E-mail',
+              icon: Icons.email_outlined,
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+            ),
 
-                const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-                CustomTextField(
-                  label: 'Celular',
-                  hint: '(17)99999-9999',
-                  icon: Icons.phone_outlined,
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(11),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  label: 'Senha',
-                  hint: '********',
-                  icon: Icons.lock_outline,
-                  controller: _passwordController,
-                  obscureText: true,
-                  enablePasswordToggle: true,
-                  autofillHints: const [AutofillHints.newPassword],
-                ),
-
-                const SizedBox(height: 28),
-
-                CustomButton(
-                  text: 'Criar Conta',
-                  isLoading: _isLoading,
-                  onPressed: _registerUser,
-                ),
-
-                const SizedBox(height: 20),
-
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    'Já possui uma conta? Fazer Login',
-                    style: TextStyle(color: AppTheme.primaryInteractive),
-                  ),
-                ),
+            CustomTextField(
+              label: 'Celular',
+              hint: '(17)99999-9999',
+              icon: Icons.phone_outlined,
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(11),
               ],
             ),
-          ),
+
+            const SizedBox(height: 16),
+
+            CustomTextField(
+              label: 'Senha',
+              hint: '********',
+              icon: Icons.lock_outline,
+              controller: _passwordController,
+              obscureText: true,
+              enablePasswordToggle: true,
+              autofillHints: const [AutofillHints.newPassword],
+            ),
+
+            const SizedBox(height: 28),
+
+            CustomButton(
+              key: const Key('auth-primary-action'),
+              text: 'Criar Conta',
+              isLoading: _isLoading,
+              onPressed: _registerUser,
+            ),
+
+            const SizedBox(height: 20),
+
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Já possui uma conta? Fazer Login',
+                style: TextStyle(color: AppTheme.primaryInteractive),
+              ),
+            ),
+          ],
         ),
       ),
     );

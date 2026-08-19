@@ -4,10 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/adaptive_action_row.dart';
 import '../../../../core/widgets/auth_surface_card.dart';
 import '../../../../core/widgets/brand_hero_panel.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/widgets/responsive_content.dart';
 import '../../user/views/station_list_page.dart';
 import '../viewmodels/login_viewmodel.dart';
 
@@ -169,140 +171,151 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
-    final disableAnimations = MediaQuery.disableAnimationsOf(context);
     return Scaffold(
       backgroundColor: AppTheme.authBackground,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460),
-                child: Column(
-                  children: [
-                    if (!keyboardOpen)
-                      TweenAnimationBuilder<double>(
-                        tween: Tween(begin: disableAnimations ? 1 : 0, end: 1),
-                        duration: disableAnimations
-                            ? Duration.zero
-                            : const Duration(milliseconds: 420),
-                        builder: (context, value, _) =>
-                            BrandHeroPanel(routeProgress: value),
-                      )
-                    else
-                      const SizedBox(height: 28),
-                    Transform.translate(
-                      offset: Offset(0, keyboardOpen ? 0 : -54),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: AuthSurfaceCard(
-                          child: AutofillGroup(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Entre na sua conta',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 22),
-                                CustomTextField(
-                                  label: 'E-mail',
-                                  hint: 'Seu e-mail',
-                                  icon: Icons.email_outlined,
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
-                                  autofillHints: const [AutofillHints.email],
-                                  textInputAction: TextInputAction.next,
-                                ),
+      body: LoginContent(
+        emailController: _emailController,
+        passwordController: _passwordController,
+        isLoading: _isLoading,
+        onLogin: _login,
+        onForgotPassword: () =>
+            Navigator.pushNamed(context, AppRoutes.forgotPassword),
+        onCreateAccount: () =>
+            Navigator.pushNamed(context, AppRoutes.registerType),
+      ),
+    );
+  }
+}
 
-                                const SizedBox(height: 16),
+class LoginContent extends StatelessWidget {
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final bool isLoading;
+  final VoidCallback onLogin;
+  final VoidCallback onForgotPassword;
+  final VoidCallback onCreateAccount;
 
-                                CustomTextField(
-                                  label: 'Senha',
-                                  hint: '••••••••',
-                                  icon: Icons.lock_outline,
-                                  controller: _passwordController,
-                                  obscureText: true,
-                                  enablePasswordToggle: true,
-                                  autofillHints: const [AutofillHints.password],
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: (_) => _login(),
-                                ),
-                                const SizedBox(height: 24),
-                                CustomButton(
-                                  text: 'Entrar',
-                                  isLoading: _isLoading,
-                                  onPressed: _login,
-                                ),
-                                const SizedBox(height: 4),
-                                Center(
-                                  child: TextButton(
-                                    onPressed: () => Navigator.pushNamed(
-                                      context,
-                                      AppRoutes.forgotPassword,
-                                    ),
-                                    child: const Text('Esqueci minha senha'),
-                                  ),
-                                ),
-                              ],
-                            ),
+  const LoginContent({
+    super.key,
+    required this.emailController,
+    required this.passwordController,
+    required this.isLoading,
+    required this.onLogin,
+    required this.onForgotPassword,
+    required this.onCreateAccount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final showHero = !keyboardOpen && constraints.maxHeight >= 680;
+
+        return ResponsiveContent(
+          maxWidth: 460,
+          padding: EdgeInsets.fromLTRB(20, showHero ? 0 : 24, 20, 30),
+          scrollable: true,
+          child: Column(
+            children: [
+              if (showHero) ...[
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: disableAnimations ? 1 : 0, end: 1),
+                  duration: disableAnimations
+                      ? Duration.zero
+                      : const Duration(milliseconds: 420),
+                  builder: (context, value, _) =>
+                      BrandHeroPanel(routeProgress: value),
+                ),
+                const SizedBox(height: 20),
+              ],
+              AuthSurfaceCard(
+                child: AutofillGroup(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Entre na sua conta',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 22),
+                      CustomTextField(
+                        label: 'E-mail',
+                        hint: 'Seu e-mail',
+                        icon: Icons.email_outlined,
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        autofillHints: const [AutofillHints.email],
+                        textInputAction: TextInputAction.next,
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Senha',
+                        hint: '••••••••',
+                        icon: Icons.lock_outline,
+                        controller: passwordController,
+                        obscureText: true,
+                        enablePasswordToggle: true,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => onLogin(),
+                      ),
+                      const SizedBox(height: 24),
+                      AdaptiveActionRow(
+                        children: [
+                          CustomButton(
+                            key: const Key('auth-primary-action'),
+                            text: 'Entrar',
+                            isLoading: isLoading,
+                            onPressed: onLogin,
                           ),
-                        ),
+                          TextButton(
+                            onPressed: onForgotPassword,
+                            child: const Text('Esqueci minha senha'),
+                          ),
+                        ],
                       ),
-                    ),
-                    Transform.translate(
-                      offset: Offset(0, keyboardOpen ? 0 : -30),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Ainda não tem uma conta?',
-                              style: TextStyle(color: AppTheme.textMuted),
-                            ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 52,
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pushNamed(
-                                  context,
-                                  AppRoutes.registerType,
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.primary,
-                                  side: const BorderSide(
-                                    color: AppTheme.primary,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Text('Criar conta'),
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            const Text(
-                              'Preços locais para decisões mais rápidas',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: AppTheme.textMuted,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 24),
+              Text(
+                'Ainda não tem uma conta?',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: OutlinedButton(
+                  onPressed: onCreateAccount,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    side: const BorderSide(color: AppTheme.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Criar conta'),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Preços locais para decisões mais rápidas',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppTheme.textMuted),
+              ),
+            ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

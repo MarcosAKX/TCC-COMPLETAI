@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/adaptive_layout.dart';
+import '../../../../core/widgets/responsive_content.dart';
 import '../../../../core/widgets/step_progress_header.dart';
-import '../../../../core/widgets/responsive_form_content.dart';
 
 class RegisterTypePage extends StatelessWidget {
   const RegisterTypePage({super.key});
@@ -12,110 +13,137 @@ class RegisterTypePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ResponsiveFormContent(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // ── Top bar ──────────────────────────────────────────────
-                SizedBox(
-                  height: 56,
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                        color: AppTheme.textLight,
-                        padding: EdgeInsets.zero,
-                      ),
-                      const Expanded(
-                        child: StepProgressHeader(
-                          currentStep: 1,
-                          totalSteps: 2,
-                        ),
-                      ),
-                      // Balancing widget so title is truly centered
-                      const SizedBox(width: 40),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 48),
-
-                // ── Headline ─────────────────────────────────────────────
-                const Text(
-                  'Bem-vindo(a)!',
-                  style: TextStyle(
+      body: ResponsiveContent(
+        maxWidth: 760,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        scrollable: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // ── Top bar ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new, size: 18),
                     color: AppTheme.textLight,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
+                    padding: EdgeInsets.zero,
                   ),
-                ),
-
-                const SizedBox(height: 10),
-
-                const Text(
-                  'Como você deseja utilizar nossa\nplataforma hoje?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppTheme.textMuted,
-                    fontSize: 15,
-                    height: 1.55,
-                    fontWeight: FontWeight.w400,
+                  const Expanded(
+                    child: StepProgressHeader(currentStep: 1, totalSteps: 2),
                   ),
-                ),
-
-                const SizedBox(height: 36),
-
-                // ── Cards ─────────────────────────────────────────────────
-                _RegisterTypeCard(
-                  icon: Icons.directions_car_outlined,
-                  title: 'Motorista',
-                  description:
-                      'Compare preços, horários e avaliações dos postos de Bebedouro.',
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppRoutes.registerUser),
-                ),
-
-                const SizedBox(height: 14),
-
-                _RegisterTypeCard(
-                  icon: Icons.local_gas_station_outlined,
-                  title: 'Posto de\nCombustível',
-                  description:
-                      'Mantenha preços, horários e serviços do seu posto atualizados.',
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.registerStationStepOne,
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // ── Footer ────────────────────────────────────────────────
-                const Text(
-                  'Já possui uma conta?',
-                  style: TextStyle(
-                    color: AppTheme.textMuted,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Fazer login'),
-                ),
-
-                const SizedBox(height: 32),
-              ],
+                  // Balancing widget so title is truly centered
+                  const SizedBox(width: 40),
+                ],
+              ),
             ),
-          ),
+
+            const SizedBox(height: 48),
+
+            // ── Headline ─────────────────────────────────────────────
+            Text(
+              'Bem-vindo(a)!',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: AppTheme.textLight,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              'Como você deseja utilizar nossa\nplataforma hoje?',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textMuted,
+                height: 1.55,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+
+            const SizedBox(height: 36),
+
+            // ── Cards ─────────────────────────────────────────────────
+            AdaptiveLayout(
+              breakpoint: 620,
+              compact: Column(
+                children: [
+                  _RegisterTypeCard(
+                    icon: Icons.directions_car_outlined,
+                    title: 'Motorista',
+                    description:
+                        'Compare preços, horários e avaliações dos postos de Bebedouro.',
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.registerUser),
+                  ),
+                  const SizedBox(height: 14),
+                  _RegisterTypeCard(
+                    icon: Icons.local_gas_station_outlined,
+                    title: 'Posto de\nCombustível',
+                    description:
+                        'Mantenha preços, horários e serviços do seu posto atualizados.',
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.registerStationStepOne,
+                    ),
+                  ),
+                ],
+              ),
+              expanded: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _RegisterTypeCard(
+                      icon: Icons.directions_car_outlined,
+                      title: 'Motorista',
+                      description:
+                          'Compare preços, horários e avaliações dos postos de Bebedouro.',
+                      onTap: () =>
+                          Navigator.pushNamed(context, AppRoutes.registerUser),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _RegisterTypeCard(
+                      icon: Icons.local_gas_station_outlined,
+                      title: 'Posto de\nCombustível',
+                      description:
+                          'Mantenha preços, horários e serviços do seu posto atualizados.',
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.registerStationStepOne,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // ── Footer ────────────────────────────────────────────────
+            Text(
+              'Já possui uma conta?',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textMuted,
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fazer login'),
+            ),
+
+            const SizedBox(height: 32),
+          ],
         ),
       ),
     );
@@ -177,17 +205,18 @@ class _RegisterTypeCard extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          color: AppTheme.textLight,
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          height: 1.3,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: AppTheme.textLight,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              height: 1.3,
+                            ),
                       ),
                       const SizedBox(height: 7),
                       Text(
                         description,
-                        style: const TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppTheme.textMuted,
                           fontSize: 13.5,
                           height: 1.5,

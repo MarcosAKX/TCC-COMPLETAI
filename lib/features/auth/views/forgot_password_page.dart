@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
-import '../../../../core/widgets/responsive_form_content.dart';
 import '../../../../core/widgets/auth_surface_card.dart';
+import '../../../../core/widgets/responsive_content.dart';
 import '../viewmodels/forgot_password_viewmodel.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -91,57 +91,55 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
       appBar: AppBar(title: const Text('Recuperar Senha')),
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ResponsiveFormContent(
-            child: AuthSurfaceCard(
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.lock_reset,
-                    size: 52,
-                    color: AppTheme.primary,
-                  ),
+      body: ResponsiveContent(
+        maxWidth: 440,
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        scrollable: true,
+        child: AuthSurfaceCard(
+          child: Column(
+            children: [
+              const Icon(Icons.lock_reset, size: 52, color: AppTheme.primary),
 
-                  const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                  const Text(
-                    'Esqueceu sua senha?',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textLight,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  const Text(
-                    'Informe seu e-mail para receber o link de recuperação.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppTheme.textMuted),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  CustomTextField(
-                    label: 'E-mail',
-                    hint: 'E-mail',
-                    icon: Icons.email_outlined,
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  CustomButton(
-                    text: 'Enviar e-mail',
-                    isLoading: _isLoading,
-                    onPressed: _sendResetEmail,
-                  ),
-                ],
+              Text(
+                'Esqueceu sua senha?',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textLight,
+                ),
               ),
-            ),
+
+              const SizedBox(height: 8),
+
+              Text(
+                'Informe seu e-mail para receber o link de recuperação.',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+              ),
+
+              const SizedBox(height: 32),
+
+              CustomTextField(
+                label: 'E-mail',
+                hint: 'E-mail',
+                icon: Icons.email_outlined,
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+
+              const SizedBox(height: 28),
+
+              CustomButton(
+                key: const Key('auth-primary-action'),
+                text: 'Enviar e-mail',
+                isLoading: _isLoading,
+                onPressed: _sendResetEmail,
+              ),
+            ],
           ),
         ),
       ),
