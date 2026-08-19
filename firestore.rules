@@ -1,0 +1,303 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsDocument(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isClient() {
+      return signedIn()
+          && exists(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          )
+          && get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.type == 'client';
+    }
+
+    function validString(value, minimum, maximum) {
+      return value is string
+          && value.size() >= minimum
+          && value.size() <= maximum;
+    }
+
+    function validPrice(prices, key) {
+      return !(key in prices)
+          || (prices[key] is number && prices[key] > 0 && prices[key] <= 50);
+    }
+
+    function validFuelPrices(prices) {
+      return prices is map
+          && prices.keys().hasOnly([
+            'gasolineRegular', 'gasolineAdditive', 'ethanol',
+            'dieselS10', 'dieselS500'
+          ])
+          && validPrice(prices, 'gasolineRegular')
+          && validPrice(prices, 'gasolineAdditive')
+          && validPrice(prices, 'ethanol')
+          && validPrice(prices, 'dieselS10')
+          && validPrice(prices, 'dieselS500');
+    }
+
+    function validOpeningHours(hours) {
+      return hours is map
+          && hours.keys().hasOnly([
+            'monday', 'tuesday', 'wednesday', 'thursday',
+            'friday', 'saturday', 'sunday'
+          ]);
+    }
+
+    function validAdministrativeData(data) {
+      return (!('fuelPrices' in data) || validFuelPrices(data.fuelPrices))
+          && (!('tags' in data)
+              || (data.tags is list && data.tags.size() <= 10))
+          && (!('services' in data)
+              || (data.services is list && data.services.size() <= 15))
+          && (!('openingHours' in data)
+              || validOpeningHours(data.openingHours));
+    }
+
+    function validPublicStation(data, stationId) {
+      return data.keys().hasOnly([
+            'uid', 'name', 'phone', 'address', 'neighborhood', 'city',
+            'fuelPrices', 'tags', 'services', 'openingHours',
+            'createdAt', 'updatedAt'
+          ])
+          && data.keys().hasAll([
+            'uid', 'name', 'phone', 'address', 'neighborhood', 'city',
+            'fuelPrices', 'tags', 'services', 'openingHours',
+            'createdAt', 'updatedAt'
+          ])
+          && data.uid == stationId
+          && validString(data.name, 3, 120)
+          && data.phone is string
+          && data.phone.matches('^[0-9]{10,11}$')
+          && validString(data.address, 3, 200)
+          && validString(data.neighborhood, 2, 100)
+          && data.city is string
+          && data.city.lower() == 'bebedouro'
+          && validAdministrativeData(data);
+    }
+
+    match /users/{uid} {
+      allow read, delete: if ownsDocument(uid);
+
+      allow create: if ownsDocument(uid)
+          && request.resource.data.keys().hasOnly([
+            'uid', 'name', 'email', 'phone', 'type', 'createdAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'uid', 'name', 'email', 'phone', 'type', 'createdAt'
+          ])
+          && request.resource.data.uid == uid
+          && request.resource.data.type == 'client'
+          && validString(request.resource.data.name, 3, 120)
+          && validString(request.resource.data.email, 5, 254)
+          && request.resource.data.email.lower()
+              == request.auth.token.email.lower()
+          && request.resource.data.phone is string
+          && request.resource.data.phone.matches('^[0-9]{10,11}$')
+          && request.resource.data.createdAt == request.time;
+
+      allow update: if ownsDocument(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['name', 'phone'])
+          && validString(request.resource.data.name, 3, 120)
+          && request.resource.data.phone is string
+          && request.resource.data.phone.matches('^[0-9]{10,11}$');
+
+      match /favorites/{stationId} {
+        allow read, delete: if ownsDocument(uid);
+        allow create: if ownsDocument(uid)
+            && request.resource.data.keys().hasOnly([
+              'stationId', 'createdAt'
+            ])
+            && request.resource.data.stationId == stationId
+            && exists(
+              /databases/$(database)/documents/public_stations/$(stationId)
+            )
+            && request.resource.data.createdAt == request.time;
+        allow update: if false;
+      }
+    }
+
+    match /gas_stations/{uid} {
+      allow read, delete: if ownsDocument(uid);
+
+      allow create: if ownsDocument(uid)
+          && request.resource.data.keys().hasOnly([
+            'uid', 'name', 'cnpj', 'phone', 'email', 'address',
+            'neighborhood', 'city', 'type', 'fuelPrices', 'tags',
+            'services', 'openingHours', 'createdAt', 'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'uid', 'name', 'cnpj', 'phone', 'email', 'address',
+            'neighborhood', 'city', 'type', 'fuelPrices', 'tags',
+            'services', 'openingHours', 'createdAt', 'updatedAt'
+          ])
+          && request.resource.data.uid == uid
+          && request.resource.data.type == 'gas_station'
+          && validString(request.resource.data.name, 3, 120)
+          && request.resource.data.cnpj is string
+          && request.resource.data.cnpj.matches('^[0-9]{14}$')
+          && request.resource.data.phone is string
+          && request.resource.data.phone.matches('^[0-9]{10,11}$')
+          && validString(request.resource.data.email, 5, 254)
+          && request.resource.data.email.lower()
+              == request.auth.token.email.lower()
+          && validString(request.resource.data.address, 3, 200)
+          && validString(request.resource.data.neighborhood, 2, 100)
+          && request.resource.data.city is string
+          && request.resource.data.city.lower() == 'bebedouro'
+          && validAdministrativeData(request.resource.data)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+      allow update: if ownsDocument(uid)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'name', 'phone', 'address', 'neighborhood', 'city',
+                'fuelPrices', 'tags', 'services', 'openingHours', 'updatedAt'
+              ])
+          && validString(request.resource.data.name, 3, 120)
+          && request.resource.data.phone is string
+          && request.resource.data.phone.matches('^[0-9]{10,11}$')
+          && validString(request.resource.data.address, 3, 200)
+          && validString(request.resource.data.neighborhood, 2, 100)
+          && request.resource.data.city is string
+          && request.resource.data.city.lower() == 'bebedouro'
+          && validAdministrativeData(request.resource.data)
+          && request.resource.data.updatedAt == request.time;
+    }
+
+    match /public_stations/{stationId} {
+      // Somente dados preparados para exibição pública ficam nesta coleção.
+      allow read: if true;
+
+      allow create: if ownsDocument(stationId)
+          && validPublicStation(request.resource.data, stationId)
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+      allow update: if ownsDocument(stationId)
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly([
+                'name', 'phone', 'address', 'neighborhood', 'city',
+                'fuelPrices', 'tags', 'services', 'openingHours', 'updatedAt'
+              ])
+          && validPublicStation(request.resource.data, stationId)
+          && request.resource.data.updatedAt == request.time;
+
+      allow delete: if ownsDocument(stationId);
+
+      match /reviews/{reviewId} {
+        allow read: if true;
+
+        allow create: if isClient()
+            && reviewId == request.auth.uid
+            && request.resource.data.keys().hasOnly([
+              'userId', 'authorName', 'rating', 'comment',
+              'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.keys().hasAll([
+              'userId', 'authorName', 'rating', 'comment',
+              'createdAt', 'updatedAt'
+            ])
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.authorName
+                == get(
+                  /databases/$(database)/documents/users/$(request.auth.uid)
+                ).data.name
+            && request.resource.data.rating is number
+            && request.resource.data.rating >= 1
+            && request.resource.data.rating <= 5
+            && validString(request.resource.data.comment, 3, 500)
+            && request.resource.data.createdAt == request.time
+            && request.resource.data.updatedAt == request.time;
+
+        allow update: if isClient()
+            && reviewId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                .hasOnly(['authorName', 'rating', 'comment', 'updatedAt'])
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.authorName
+                == get(
+                  /databases/$(database)/documents/users/$(request.auth.uid)
+                ).data.name
+            && request.resource.data.rating is number
+            && request.resource.data.rating >= 1
+            && request.resource.data.rating <= 5
+            && validString(request.resource.data.comment, 3, 500)
+            && request.resource.data.updatedAt == request.time;
+
+        allow delete: if isClient() && reviewId == request.auth.uid;
+      }
+
+      match /review_reports/{reportId} {
+        allow read: if ownsDocument(stationId)
+            || (signedIn()
+                && resource.data.reporterUid == request.auth.uid);
+
+        allow create: if signedIn()
+            && reportId
+                == request.resource.data.reviewId + '_' + request.auth.uid
+            && exists(
+              /databases/$(database)/documents/public_stations/$(stationId)/reviews/$(request.resource.data.reviewId)
+            )
+            && request.resource.data.keys().hasOnly([
+              'reviewId', 'stationId', 'reporterUid',
+              'reason', 'status', 'createdAt'
+            ])
+            && request.resource.data.stationId == stationId
+            && request.resource.data.reporterUid == request.auth.uid
+            && request.resource.data.reason in [
+              'Conteúdo ofensivo',
+              'Palavrões ou baixo calão',
+              'Discurso de ódio',
+              'Spam ou conteúdo falso',
+              'Outro'
+            ]
+            && request.resource.data.status == 'pending'
+            && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
+      }
+
+      match /reports/{reporterUid} {
+        allow read: if ownsDocument(stationId)
+            || ownsDocument(reporterUid);
+
+        allow create: if isClient()
+            && reporterUid == request.auth.uid
+            && request.resource.data.keys().hasOnly([
+              'stationId', 'reporterUid', 'reason', 'details',
+              'status', 'createdAt'
+            ])
+            && request.resource.data.stationId == stationId
+            && request.resource.data.reporterUid == request.auth.uid
+            && request.resource.data.reason in [
+              'Suspeita de combustível adulterado',
+              'Preço diferente do anunciado',
+              'Informações incorretas',
+              'Posto inexistente ou fechado',
+              'Outro'
+            ]
+            && request.resource.data.details is string
+            && request.resource.data.details.size() <= 500
+            && request.resource.data.status == 'pending'
+            && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

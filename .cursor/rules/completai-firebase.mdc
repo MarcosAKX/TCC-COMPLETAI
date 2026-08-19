@@ -1,0 +1,58 @@
+---
+description: Firebase e Firestore no Completai — services, denormalização, rules e mensagens
+globs: lib/**/services/**,firestore.rules
+alwaysApply: false
+---
+
+# Completai — Firebase
+
+## Coleções principais
+
+- `users/{uid}` — perfil privado cliente (`type: client`)
+- `gas_stations/{uid}` — perfil privado posto (inclui CNPJ, e-mail)
+- `public_stations/{stationId}` — projeção pública (`stationId == uid`)
+- subcoleções: `reviews`, `favorites`, `reports`
+
+Schema: `docs/MODELO-DE-DADOS.md`.
+
+## Denormalização posto
+
+Gravações normais atualizam **privado + público em batch** via `GasStationService`. Projeção pública omite CNPJ, e-mail e `type`.
+
+Ao alterar campos do posto:
+
+1. atualizar model privado e público
+2. manter batch atômico
+3. revisar `firestore.rules` se validação ou campos mudarem
+
+## Leitura pública
+
+- `PublicStationService.getStations()`: server com fallback cache, filtro Bebedouro no client, N+1 reviews
+- ranking bayesiano calculado na UI: `((count × avg) + 40) / (count + 10)`
+- falha de reviews de um posto não derruba lista inteira
+
+## Autorização (pendência P0)
+
+Rules atuais permitem que cliente autenticado crie `gas_stations/{uid}` no próprio UID. **Não tratar `type` gravável como fonte de autorização confiável.**
+
+Antes de "corrigir" só no app: ver `docs/REGRAS-DE-NEGOCIO-E-SEGURANCA.md`.
+
+## Mensagens de erro
+
+Traduzir códigos Firebase para português humano:
+
+- indicar o que falhou
+- sugerir próximo passo
+- reservar código técnico para logs (`debugPrint`), não para SnackBar/dialog
+
+## Exclusão de conta
+
+Batch remove documentos pai; subcoleções **não** são excluídas automaticamente. Qualquer fluxo de delete deve considerar órfãos ou delegar a backend.
+
+## Ao modificar
+
+- [ ] `firestore.rules` coerente com campos e papéis
+- [ ] batch privado/público preservado
+- [ ] mensagens de UI humanas
+- [ ] teste em `test/validation_test.dart` se regra de validação mudar
+- [ ] doc em `docs/MODELO-DE-DADOS.md` ou `docs/REGRAS-DE-NEGOCIO-E-SEGURANCA.md` se contrato mudar

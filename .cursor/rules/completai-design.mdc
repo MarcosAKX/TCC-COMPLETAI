@@ -1,0 +1,48 @@
+---
+description: Design system Completai — tokens, componentes core e regras de interface
+globs: lib/**/views/**,lib/core/**
+alwaysApply: false
+---
+
+# Completai — UI/UX
+
+Autoridade: `DESIGN.md` e `lib/core/theme/app_theme.dart`.
+
+## Direção visual
+
+**Decisão em Movimento** — alto contraste outdoor, neutro-claro, petróleo institucional. Duas decisões visuais distintas: **economia (âmbar)** vs **avaliação (azul proximidade)**.
+
+## Tokens
+
+- cores via `AppTheme.*` ou `Theme.of(context).colorScheme`
+- tipografia: IBM Plex Sans (UI), Barlow Semi Condensed (preços via `AppTheme.priceStyle`)
+- espaçamento: múltiplos de 4
+- raios: input/botão 12, card 14, marca 20
+
+## Componentes core (reutilizar)
+
+- `CustomButton`, `CustomTextField`
+- `PriceDisplay` — um destaque âmbar por superfície
+- `DecisionHighlightCard` — menor preço / melhor avaliação na lista
+- `StatusPill`, `TrustBadge`, `WelcomeSummaryHeader`
+- `BrandHeader`, `StepProgressHeader`
+
+## Regras por superfície
+
+- **Lista:** dois destaques fixos no topo; faixa lateral 4dp nos cards correspondentes
+- **Perfil:** hierarquia nome → preço → metadados; botões outline legíveis
+- **Dashboard:** painel de preços com `amberSurface`
+
+## Proibido
+
+- hex local quando token existe
+- âmbar em todos os preços
+- distância/economia sem dado real
+- glow, glassmorphism, verde neon
+
+## Ao alterar UI
+
+1. reutilizar token/componente
+2. atualizar `DESIGN.md` se contrato mudar
+3. teste em `test/design_system_test.dart`
+4. inspeção Android antes de aprovação visual

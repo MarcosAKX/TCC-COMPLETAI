@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "420963507634",
+    "project_id": "completai-tcc",
+    "storage_bucket": "completai-tcc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:420963507634:android:a1336ec8df8afef6ff58ab",
+        "android_client_info": {
+          "package_name": "com.example.completai_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQ40b_uoa9260g8grqIKjrspyqOQmDvQA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

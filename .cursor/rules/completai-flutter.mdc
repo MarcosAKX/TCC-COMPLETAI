@@ -1,0 +1,52 @@
+---
+description: Convenções Dart/Flutter do Completai — estrutura de features, nomenclatura e padrões de código
+globs: lib/**/*.dart
+alwaysApply: false
+---
+
+# Completai — Flutter/Dart
+
+## Onde colocar código
+
+| Tipo | Destino |
+|---|---|
+| página | `features/<domínio>/views/<nome>_page.dart` |
+| viewmodel | `features/<domínio>/viewmodels/<nome>_viewmodel.dart` |
+| service Firebase | `features/<domínio>/services/<nome>_service.dart` |
+| model/DTO | `features/<domínio>/models/` |
+| widget reutilizável (2+ features) | `core/widgets/` |
+| token/cor/tema | `core/theme/app_theme.dart` |
+| rota nomeada | `app/app_routes.dart` |
+
+## Nomenclatura
+
+- arquivos: `snake_case`
+- classes: `PascalCase`
+- sufixos: `_page`, `_viewmodel`, `_service`, `_repository`, `_model`
+
+## Padrões observados
+
+- preferir `const` constructors quando possível
+- validação de formulário de cadastro: viewmodel retorna `String?` de erro
+- services instanciam Firebase diretamente, exceto onde injeção já existe (`PublicStationService`)
+- repositories atuais são pass-through — não adicionar camada sem lógica real
+- comentários de seção em português aceitos em arquivos grandes (`// ===== ROTAS =====`)
+
+## Navegação
+
+- rotas nomeadas via `AppRoutes` para telas principais
+- `MaterialPageRoute` permitido quando rota precisa de argumento (ex.: `stationId`)
+- nova rota nomeada: constante + entrada em `AppRoutes.routes`
+
+## Evitar
+
+- hex/cores locais em views quando papel semântico existe em `AppTheme`
+- widgets duplicados que já existem em `core/widgets/`
+- acesso Firebase direto em cadastros que já têm viewmodel/repository
+- `print` em produção; usar `debugPrint` se necessário
+
+## Testes
+
+- validações e ranking: `test/validation_test.dart`
+- contratos visuais/tema: `test/design_system_test.dart`
+- adicionar teste comportamental quando contrato de widget ou validação mudar

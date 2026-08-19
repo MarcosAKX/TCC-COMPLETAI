@@ -1,0 +1,25 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "completai-tcc",
+          "appId": "1:420963507634:android:a1336ec8df8afef6ff58ab",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "completai-tcc",
+          "configurations": {
+            "android": "1:420963507634:android:a1336ec8df8afef6ff58ab",
+            "web": "1:420963507634:web:77985c7cf3315106ff58ab"
+          }
+        }
+      }
+    }
+  }
+}

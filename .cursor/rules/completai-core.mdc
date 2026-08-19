@@ -1,0 +1,48 @@
+---
+description: Padrões globais do projeto Completai — stack, escopo e convenções gerais
+alwaysApply: true
+---
+
+# Completai — regras globais
+
+## Projeto
+
+- App Flutter **Completai!** para motoristas e postos de combustível em **Bebedouro**.
+- Stack: Flutter, Dart SDK ^3.12, Firebase Auth, Cloud Firestore.
+- Entrega principal: Android. Firebase configurado para Android e Web.
+- Sem backend próprio; cliente acessa Firebase diretamente.
+
+## Escopo (não inventar)
+
+- Sem geolocalização, pagamentos, venda de combustível ou ranking semanal (pendente no TAP).
+- `google_sign_in` declarado mas não integrado — não implementar login Google sem solicitação explícita.
+- Cidade operacional: Bebedouro. Não assumir outras cidades.
+- Sem logo/foto real de posto: usar ícone vetorial; nunca gerar fotografia fictícia.
+
+## Arquitetura
+
+- Organização **feature-first**: `lib/features/{auth,gas_station,user}/`.
+- Código transversal em `lib/core/` e shell em `lib/app/`.
+- MVVM completo só em cadastros; outras telas podem chamar services diretamente — seguir padrão da feature vizinha, não impor camadas vazias.
+- Estado local com `StatefulWidget`; sem adicionar state manager global sem decisão explícita.
+
+## Documentação canônica
+
+Consultar antes de mudanças estruturais ou visuais:
+
+- `ARCHITECTURE.md` — fluxos e decisões técnicas
+- `STRUCTURE.md` — pastas, rotas, nomenclatura
+- `DESIGN.md` — design system
+- `PRODUCT.md` — escopo de produto
+- `docs/REGRAS-DE-NEGOCIO-E-SEGURANCA.md` — segurança e regras Firestore
+
+## Idioma e copy
+
+- UI, mensagens de erro e labels: **português brasileiro**, sentence case.
+- Erros humanos com próximo passo; nunca expor "Firestore", "rules" ou códigos técnicos ao usuário.
+
+## Qualidade mínima
+
+- Rodar `flutter analyze` e `flutter test` após mudanças relevantes.
+- Revisar `firestore.rules` quando dados, validação ou autorização mudarem.
+- Atualizar doc afetada (`DESIGN.md`, `ARCHITECTURE.md`, etc.) quando contrato mudar.
