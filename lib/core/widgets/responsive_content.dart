@@ -6,7 +6,6 @@ class ResponsiveContent extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final bool scrollable;
   final ScrollController? controller;
-  final Key? frameKey;
 
   const ResponsiveContent({
     super.key,
@@ -15,29 +14,32 @@ class ResponsiveContent extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.scrollable = false,
     this.controller,
-    this.frameKey,
   });
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final content = scrollable
-            ? ListView(
-                controller: controller,
-                padding: padding,
-                children: [child],
-              )
-            : Padding(padding: padding, child: child);
+    final content = scrollable
+        ? ListView(
+            controller: controller,
+            padding: padding.add(
+              EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+            ),
+            children: [child],
+          )
+        : Padding(padding: padding, child: child);
 
-        return Center(
-          child: ConstrainedBox(
-            key: frameKey ?? const Key('responsive-content-frame'),
-            constraints: BoxConstraints(maxWidth: maxWidth),
-            child: SizedBox(width: double.infinity, child: content),
-          ),
-        );
-      },
+    return SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Center(
+            child: ConstrainedBox(
+              key: const Key('responsive-content-frame'),
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: SizedBox(width: double.infinity, child: content),
+            ),
+          );
+        },
+      ),
     );
   }
 }

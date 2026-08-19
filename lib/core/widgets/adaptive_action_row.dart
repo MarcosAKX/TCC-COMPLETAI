@@ -16,8 +16,14 @@ class AdaptiveActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < breakpoint) {
-          return Column(children: _withSpacing(Axis.vertical));
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final scaledBreakpoint = breakpoint + (textScale - 1).clamp(0, 1) * 80;
+
+        if (constraints.maxWidth < scaledBreakpoint) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _withSpacing(Axis.vertical),
+          );
         }
 
         return Row(children: _withSpacing(Axis.horizontal));
@@ -33,7 +39,10 @@ class AdaptiveActionRow extends StatelessWidget {
             width: axis == Axis.horizontal ? spacing : null,
             height: axis == Axis.vertical ? spacing : null,
           ),
-        children[index],
+        ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: children[index],
+        ),
       ],
     ];
   }

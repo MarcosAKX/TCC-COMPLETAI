@@ -16,11 +16,16 @@ class ResponsiveFormContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveContent(
-      frameKey: const Key('responsive-form-frame'),
-      maxWidth: maxWidth,
-      padding: padding,
-      child: child,
+    return Center(
+      child: ConstrainedBox(
+        key: const Key('responsive-form-frame'),
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: ResponsiveContent(
+          maxWidth: maxWidth,
+          padding: padding,
+          child: child,
+        ),
+      ),
     );
   }
 }
