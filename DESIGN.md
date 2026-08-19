@@ -4,7 +4,7 @@
 
 ## Direction
 
-**Ágil e inteligente:** interface para comparação rápida no celular. Usuário escolhe o combustível uma vez; a lista inteira prioriza esse contexto, sem esconder os demais preços. Experiência deve ser legível ao sol, objetiva, confiável e reconhecível pela hierarquia azul/verde e pela faixa lateral do resultado recomendado.
+**Ágil e inteligente:** interface para comparação rápida no celular. Usuário escolhe o combustível uma vez; a lista inteira prioriza esse contexto, sem esconder os demais preços. Experiência deve ser legível ao sol, objetiva, confiável e reconhecível pela hierarquia azul/verde e pela faixa lateral do menor preço.
 
 Personalidade aparece em conteúdo útil e hierarquia clara, não em ornamentação.
 
@@ -74,7 +74,7 @@ Papéis M3: `headlineMedium`, `titleLarge`, `titleMedium`, `bodyLarge`, `bodyMed
 - Status: pill completa.
 - Touch target: mínimo 48×48 dp; botão principal 52 dp.
 - Espaçamento-base: múltiplos de 4 (8, 12, 16, 20, 24, 28).
-- Faixa lateral 4 dp aparece apenas no resultado recomendado/melhor ranqueado.
+- Faixa lateral 4 dp aparece apenas no posto com menor preço do combustível selecionado.
 
 ## Components
 
@@ -120,7 +120,7 @@ Controle segmentado Material para Gasolina, Etanol e Diesel. Seleção ativa em 
 
 ### `DiscoveryStationCard`
 
-Card da lista com logo/fallback, três preços, frescor, nota e status. Faixa azul aparece apenas no recomendado; melhor valor recebe verde-esmeralda e rótulo textual.
+Card da lista com logo/fallback, três preços, frescor, nota e status. Faixa azul aparece apenas no menor preço do combustível selecionado; melhor valor recebe verde-esmeralda e rótulo textual.
 
 ### `TrustBadge`
 
@@ -146,8 +146,10 @@ Aberto/fechado com ícone + texto + cor.
 - lista e ranking respondem ao combustível selecionado;
 - card fechado mostra Gasolina, Etanol e Diesel;
 - preços comuns usam azul médio; seleção usa fundo e contorno;
-- faixa azul-cobalto de 4dp aparece somente no resultado recomendado;
+- faixa azul-cobalto de 4dp aparece somente no posto com menor preço do combustível selecionado;
 - menor preço válido recebe verde-esmeralda e rótulo “Melhor valor”;
+- cabeçalho usa “Menor preço de [combustível]”; diferença usa “R$ X/L abaixo do próximo preço”;
+- dica inline sobre troca de combustível pode ser dispensada e não reaparece após dispensa ou primeira troca;
 - toque no card abre o perfil com todos os preços e informações;
 - não mostrar distância ou economia sem dado real.
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -7,9 +9,11 @@ import '../../../core/widgets/app_user_avatar.dart';
 import '../../../core/widgets/welcome_summary_header.dart';
 import '../../gas_station/models/public_gas_station.dart';
 import '../models/station_discovery_filter.dart';
+import '../services/discovery_tip_preference.dart';
 import '../services/public_station_service.dart';
 import '../widgets/discovery_station_card.dart';
 import '../widgets/fuel_choice_selector.dart';
+import '../widgets/fuel_discovery_tip.dart';
 import '../widgets/fuel_swipe_surface.dart';
 import 'public_station_profile_page.dart';
 
@@ -21,25 +25,21 @@ class StationListPage extends StatefulWidget {
 }
 
 class _StationListPageState extends State<StationListPage> {
-  static bool _onboardingShownThisSession = false;
   final PublicStationService _service = PublicStationService();
+  final DiscoveryTipPreference _tipPreference = DiscoveryTipPreference();
   final TextEditingController _searchController = TextEditingController();
   late Future<List<PublicGasStation>> _stationsFuture;
   FuelChoice _fuel = FuelChoice.gasoline;
   bool _onlyOpen = false;
   bool _isRefreshing = false;
   bool _minimumRatingFour = false;
+  bool _showFuelTip = false;
 
   @override
   void initState() {
     super.initState();
     _stationsFuture = _service.getStations();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_onboardingShownThisSession && mounted) {
-        _onboardingShownThisSession = true;
-        _showFirstUseGuide();
-      }
-    });
+    unawaited(_loadFuelTip());
   }
 
   @override
@@ -93,54 +93,24 @@ class _StationListPageState extends State<StationListPage> {
     if (mounted) _reload();
   }
 
-  Future<void> _showFirstUseGuide() {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Abasteça com mais confiança',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 7),
-              Text(
-                'Encontre a melhor opção sem perder tempo.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 18),
-              const _GuideItem(
-                icon: Icons.local_gas_station_outlined,
-                text: 'Escolha seu combustível',
-              ),
-              const _GuideItem(
-                icon: Icons.price_check_outlined,
-                text: 'Compare preços atualizados',
-              ),
-              const _GuideItem(
-                icon: Icons.swipe_outlined,
-                text: 'Deslize para alternar combustíveis',
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Ver postos'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  Future<void> _loadFuelTip() async {
+    final shouldShow = await _tipPreference.shouldShow();
+    if (!mounted) return;
+    setState(() => _showFuelTip = shouldShow);
+  }
+
+  void _changeFuel(FuelChoice fuel) {
+    final changed = fuel != _fuel;
+    setState(() {
+      _fuel = fuel;
+      if (changed) _showFuelTip = false;
+    });
+    if (changed) unawaited(_tipPreference.dismiss());
+  }
+
+  void _dismissFuelTip() {
+    setState(() => _showFuelTip = false);
+    unawaited(_tipPreference.dismiss());
   }
 
   Future<void> _showLocationInfo() {
@@ -290,12 +260,14 @@ class _StationListPageState extends State<StationListPage> {
                     ),
                     FuelSwipeSurface(
                       choice: _fuel,
-                      onChanged: (fuel) => setState(() => _fuel = fuel),
+                      onChanged: _changeFuel,
                       child: FuelChoiceSelector(
                         choice: _fuel,
-                        onChanged: (fuel) => setState(() => _fuel = fuel),
+                        onChanged: _changeFuel,
                       ),
                     ),
+                    if (_showFuelTip)
+                      FuelDiscoveryTip(onDismiss: _dismissFuelTip),
                     Material(
                       color: AppTheme.discoveryBackground,
                       child: Padding(
@@ -323,7 +295,7 @@ class _StationListPageState extends State<StationListPage> {
                     Expanded(
                       child: FuelSwipeSurface(
                         choice: _fuel,
-                        onChanged: (fuel) => setState(() => _fuel = fuel),
+                        onChanged: _changeFuel,
                         child: ColoredBox(
                           color: AppTheme.discoveryBackground,
                           child: _buildResults(snapshot, allStations),
@@ -402,27 +374,6 @@ class _StationListPageState extends State<StationListPage> {
             onOpen: () => _openStation(station),
           );
         },
-      ),
-    );
-  }
-}
-
-class _GuideItem extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _GuideItem({required this.icon, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        children: [
-          Icon(icon, color: AppTheme.primary, size: 22),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text)),
-        ],
       ),
     );
   }

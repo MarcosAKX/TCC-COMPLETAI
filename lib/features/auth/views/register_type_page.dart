@@ -13,103 +13,108 @@ class RegisterTypePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: ResponsiveFormContent(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // ── Top bar ──────────────────────────────────────────────
-              SizedBox(
-                height: 56,
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-                      color: AppTheme.textLight,
-                      padding: EdgeInsets.zero,
-                    ),
-                    const Expanded(
-                      child: StepProgressHeader(currentStep: 1, totalSteps: 2),
-                    ),
-                    // Balancing widget so title is truly centered
-                    const SizedBox(width: 40),
-                  ],
+        child: SingleChildScrollView(
+          child: ResponsiveFormContent(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // ── Top bar ──────────────────────────────────────────────
+                SizedBox(
+                  height: 56,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+                        color: AppTheme.textLight,
+                        padding: EdgeInsets.zero,
+                      ),
+                      const Expanded(
+                        child: StepProgressHeader(
+                          currentStep: 1,
+                          totalSteps: 2,
+                        ),
+                      ),
+                      // Balancing widget so title is truly centered
+                      const SizedBox(width: 40),
+                    ],
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 48),
+                const SizedBox(height: 48),
 
-              // ── Headline ─────────────────────────────────────────────
-              const Text(
-                'Bem-vindo(a)!',
-                style: TextStyle(
-                  color: AppTheme.textLight,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
+                // ── Headline ─────────────────────────────────────────────
+                const Text(
+                  'Bem-vindo(a)!',
+                  style: TextStyle(
+                    color: AppTheme.textLight,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-              const Text(
-                'Como você deseja utilizar nossa\nplataforma hoje?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 15,
-                  height: 1.55,
-                  fontWeight: FontWeight.w400,
+                const Text(
+                  'Como você deseja utilizar nossa\nplataforma hoje?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 15,
+                    height: 1.55,
+                    fontWeight: FontWeight.w400,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 36),
+                const SizedBox(height: 36),
 
-              // ── Cards ─────────────────────────────────────────────────
-              _RegisterTypeCard(
-                icon: Icons.directions_car_outlined,
-                title: 'Usuário',
-                description:
-                    'Economize combustível,\nencontre postos próximos e\nacompanhe seus gastos.',
-                onTap: () =>
-                    Navigator.pushNamed(context, AppRoutes.registerUser),
-              ),
-
-              const SizedBox(height: 14),
-
-              _RegisterTypeCard(
-                icon: Icons.local_gas_station_outlined,
-                title: 'Posto de\nCombustível',
-                description:
-                    'Gerencie preços em tempo\nreal, atraia novos clientes e\naumente suas vendas.',
-                onTap: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.registerStationStepOne,
+                // ── Cards ─────────────────────────────────────────────────
+                _RegisterTypeCard(
+                  icon: Icons.directions_car_outlined,
+                  title: 'Motorista',
+                  description:
+                      'Compare preços, horários e avaliações dos postos de Bebedouro.',
+                  onTap: () =>
+                      Navigator.pushNamed(context, AppRoutes.registerUser),
                 ),
-              ),
 
-              const Spacer(),
+                const SizedBox(height: 14),
 
-              // ── Footer ────────────────────────────────────────────────
-              const Text(
-                'Já possui uma conta?',
-                style: TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
+                _RegisterTypeCard(
+                  icon: Icons.local_gas_station_outlined,
+                  title: 'Posto de\nCombustível',
+                  description:
+                      'Mantenha preços, horários e serviços do seu posto atualizados.',
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.registerStationStepOne,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 32),
 
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Fazer login'),
-              ),
+                // ── Footer ────────────────────────────────────────────────
+                const Text(
+                  'Já possui uma conta?',
+                  style: TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
 
-              const SizedBox(height: 32),
-            ],
+                const SizedBox(height: 8),
+
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Fazer login'),
+                ),
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),

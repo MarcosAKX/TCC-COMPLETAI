@@ -135,7 +135,7 @@ class _DecisionHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Melhor opção para ${fuel.label}',
+              'Menor preço de ${fuel.label}',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w700,
@@ -150,7 +150,7 @@ class _DecisionHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(99),
               ),
               child: Text(
-                'Economize até R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L',
+                'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: AppTheme.savings,
                   fontWeight: FontWeight.w700,

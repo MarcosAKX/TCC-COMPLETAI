@@ -67,8 +67,8 @@ void main() {
     expect(find.text('R\$ 3,79'), findsOneWidget);
     expect(find.text('R\$ 5,89'), findsOneWidget);
     expect(find.text('Melhor valor'), findsOneWidget);
-    expect(find.text('Melhor opção para Gasolina'), findsOneWidget);
-    expect(find.text('Economize até R\$ 0,10/L'), findsOneWidget);
+    expect(find.text('Menor preço de Gasolina'), findsOneWidget);
+    expect(find.text('R\$ 0,10/L abaixo do próximo preço'), findsOneWidget);
 
     final accent = tester.widget<ColoredBox>(
       find.byKey(const Key('station-card-accent')),
