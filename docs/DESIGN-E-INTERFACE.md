@@ -1,5 +1,25 @@
 # Design e interface
 
+## Contrato de adaptatividade Android — 24/08/2026
+
+Os fluxos existentes de autenticação, configurações, descoberta, perfis e dashboard foram adaptados sem alterar regras de negócio ou promover redesign. O contrato cobre celulares Android compactos entre 320 e 600 dp de largura, retrato e paisagem, teclado virtual e escala de texto do sistema até 2,0×.
+
+Matriz automatizada mínima:
+
+| Janela | Escala de texto | Cobertura |
+|---|---:|---|
+| 320×568 dp | 1,0× | menor celular suportado |
+| 360×800 dp | 2,0× | ampliação máxima validada |
+| 640×360 dp | 1,3× | paisagem compacta |
+
+`ResponsiveContent` aplica área segura, margens fluidas, largura máxima, rolagem e insets quando necessários. `AdaptiveLayout` escolhe composições pelo `maxWidth` disponível, com breakpoints definidos pela necessidade do conteúdo. `AdaptiveActionRow` mantém ações horizontais somente quando texto e controles cabem e, em espaço insuficiente, reorganiza-as verticalmente sem inverter a ordem semântica.
+
+O reflow é orientado pelo conteúdo: blocos com texto variável crescem; cabeçalhos, status, preços, filtros, horários e ações podem mudar de linha; conteúdo essencial não é cortado para caber. No dashboard do posto, a navegação usa barra inferior abaixo de 840 dp e `NavigationRail` a partir de 840 dp. O ponto de 840 dp é específico da navegação administrativa e não inclui tablets ou foldables expandidos no escopo desta entrega.
+
+A suíte verifica ausência de exceções de layout, acesso por scroll aos conteúdos e CTAs relevantes, comportamento com IME e alvos interativos avaliados de pelo menos 48×48 dp. A escala de 2,0× é o máximo validado, sem limitar o `textScaler` configurado pelo usuário.
+
+Inspeção visual Android continua sendo uma etapa distinta: exige capturas em dispositivo real ou emulador nos modos retrato, paisagem e fonte 1,3×. Quando nenhum dispositivo estiver conectado, a validação fica explicitamente pendente; testes e análise estática não substituem homologação visual em Android.
+
 ## Padrão global “Ágil e inteligente” — 18/08/2026
 
 Direção aprovada aplicada ao tema e às 12 telas existentes. Manrope tornou-se a única família tipográfica. Valores comuns usam azul médio `#3559C7`; melhor valor usa verde `#079B68`; avaliações usam âmbar próprio. Aliases antigos que confundiam economia, avaliação e marca foram removidos.
