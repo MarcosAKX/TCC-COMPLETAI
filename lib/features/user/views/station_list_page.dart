@@ -307,101 +307,111 @@ class StationDiscoveryContent extends StatelessWidget {
       color: AppTheme.discoveryBackground,
       child: RefreshIndicator.adaptive(
         onRefresh: onRefresh,
-        child: ListView(
+        child: CustomScrollView(
           key: const Key('station-discovery-scroll'),
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 28),
-          children: [
-            WelcomeSummaryHeader(
-              stationCount: allStations.length,
-              onLocationTap: onLocationTap,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: TextField(
-                controller: searchController,
-                onChanged: onSearchChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Buscar posto ou bairro',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Limpar busca',
-                          onPressed: onClearSearch,
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                ),
+          slivers: [
+            SliverToBoxAdapter(
+              child: WelcomeSummaryHeader(
+                stationCount: allStations.length,
+                onLocationTap: onLocationTap,
               ),
             ),
-            FuelSwipeSurface(
-              choice: fuel,
-              onChanged: onFuelChanged,
-              child: FuelChoiceSelector(choice: fuel, onChanged: onFuelChanged),
-            ),
-            if (showFuelTip) FuelDiscoveryTip(onDismiss: onDismissFuelTip),
-            Material(
-              color: AppTheme.discoveryBackground,
+            SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Flexible(child: Text('Só abertos')),
-                        Switch.adaptive(
-                          value: onlyOpen,
-                          onChanged: onOnlyOpenChanged,
-                        ),
-                      ],
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: onShowFilters,
-                      icon: const Icon(Icons.tune_rounded, size: 18),
-                      label: Text(
-                        minimumRatingFour ? 'Filtros (1)' : 'Filtros',
-                      ),
-                    ),
-                  ],
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                child: TextField(
+                  controller: searchController,
+                  onChanged: onSearchChanged,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar posto ou bairro',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Limpar busca',
+                            onPressed: onClearSearch,
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
                 ),
               ),
             ),
-            FuelSwipeSurface(
-              choice: fuel,
-              onChanged: onFuelChanged,
-              child: Column(children: _buildResults(allStations)),
+            SliverToBoxAdapter(
+              child: FuelSwipeSurface(
+                choice: fuel,
+                onChanged: onFuelChanged,
+                child: FuelChoiceSelector(
+                  choice: fuel,
+                  onChanged: onFuelChanged,
+                ),
+              ),
             ),
+            if (showFuelTip)
+              SliverToBoxAdapter(
+                child: FuelDiscoveryTip(onDismiss: onDismissFuelTip),
+              ),
+            SliverToBoxAdapter(
+              child: Material(
+                color: AppTheme.discoveryBackground,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Flexible(child: Text('Só abertos')),
+                          Switch.adaptive(
+                            value: onlyOpen,
+                            onChanged: onOnlyOpenChanged,
+                          ),
+                        ],
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: onShowFilters,
+                        icon: const Icon(Icons.tune_rounded, size: 18),
+                        label: Text(
+                          minimumRatingFour ? 'Filtros (1)' : 'Filtros',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            _buildResults(allStations),
+            const SliverToBoxAdapter(child: SizedBox(height: 28)),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildResults(List<PublicGasStation> allStations) {
+  Widget _buildResults(List<PublicGasStation> allStations) {
     if (snapshot.connectionState == ConnectionState.waiting) {
-      return const [
-        SizedBox(
+      return const SliverToBoxAdapter(
+        child: SizedBox(
           height: 180,
           child: Center(child: CircularProgressIndicator()),
         ),
-      ];
+      );
     }
     if (snapshot.hasError) {
-      return [
-        _MessageState(
+      return SliverToBoxAdapter(
+        child: _MessageState(
           icon: Icons.cloud_off_rounded,
           title: 'Não foi possível carregar os postos',
           subtitle: 'Confira sua conexão e tente novamente.',
           actionLabel: 'Tentar novamente',
           onAction: onRetry,
         ),
-      ];
+      );
     }
 
     final now = currentTime ?? DateTime.now();
@@ -414,8 +424,8 @@ class StationDiscoveryContent extends StatelessWidget {
       minimumRating: minimumRatingFour ? 4 : null,
     );
     if (stations.isEmpty) {
-      return [
-        _MessageState(
+      return SliverToBoxAdapter(
+        child: _MessageState(
           icon: Icons.local_gas_station_outlined,
           title: onlyOpen
               ? 'Nenhum posto aberto encontrado'
@@ -426,28 +436,33 @@ class StationDiscoveryContent extends StatelessWidget {
           actionLabel: onlyOpen ? 'Mostrar todos' : null,
           onAction: onlyOpen ? () async => onOnlyOpenChanged(false) : null,
         ),
-      ];
+      );
     }
 
     final bestId = bestPricedStationId(stations, fuel);
     final savings = savingsPerLiter(stations, fuel);
-    return [
-      for (var index = 0; index < stations.length; index++) ...[
-        if (index > 0) const SizedBox(height: 14),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: DiscoveryStationCard(
-            key: Key('discovery-station-${stations[index].id}'),
-            station: stations[index],
-            fuel: fuel,
-            isBestValue: stations[index].id == bestId,
-            savingsPerLiter: stations[index].id == bestId ? savings : null,
-            isOpen: stations[index].isOpenAt(now),
-            onOpen: () => onOpenStation(stations[index]),
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        if (index.isOdd) return const SizedBox(height: 14);
+        final station = stations[index ~/ 2];
+        return FuelSwipeSurface(
+          choice: fuel,
+          onChanged: onFuelChanged,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DiscoveryStationCard(
+              key: Key('discovery-station-${station.id}'),
+              station: station,
+              fuel: fuel,
+              isBestValue: station.id == bestId,
+              savingsPerLiter: station.id == bestId ? savings : null,
+              isOpen: station.isOpenAt(now),
+              onOpen: () => onOpenStation(station),
+            ),
           ),
-        ),
-      ],
-    ];
+        );
+      }, childCount: stations.length * 2 - 1),
+    );
   }
 }
 

@@ -361,6 +361,59 @@ void main() {
     await tester.pumpAndSettle();
     expect(selectedFuel, FuelChoice.diesel);
   });
+
+  testWidgets('cards fora da tela só são construídos ao rolar', (tester) async {
+    final searchController = TextEditingController();
+    addTearDown(searchController.dispose);
+    final stations = List.generate(
+      30,
+      (index) => _station(id: 'station-$index', name: 'Posto $index'),
+    );
+
+    await pumpAdaptive(
+      tester,
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: StationDiscoveryContent(
+            snapshot: AsyncSnapshot.withData(ConnectionState.done, stations),
+            searchController: searchController,
+            fuel: FuelChoice.gasoline,
+            onlyOpen: false,
+            minimumRatingFour: false,
+            showFuelTip: false,
+            onRefresh: () async {},
+            onRetry: () async {},
+            onLocationTap: () {},
+            onSearchChanged: (_) {},
+            onClearSearch: () {},
+            onFuelChanged: (_) {},
+            onDismissFuelTip: () {},
+            onOnlyOpenChanged: (_) {},
+            onShowFilters: () {},
+            onOpenStation: (_) {},
+          ),
+        ),
+      ),
+      adaptiveSmallPhone,
+    );
+
+    final lastCard = find.byKey(const Key('discovery-station-station-29'));
+    expect(lastCard, findsNothing);
+
+    final scroll = find.byKey(const Key('station-discovery-scroll'));
+    for (
+      var attempt = 0;
+      attempt < 30 && lastCard.evaluate().isEmpty;
+      attempt++
+    ) {
+      await tester.drag(scroll, const Offset(0, -500));
+      await tester.pump();
+    }
+
+    expect(lastCard, findsOneWidget);
+    expectNoLayoutExceptions(tester);
+  });
 }
 
 void _expectFullyRendered(WidgetTester tester, Finder finder) {
@@ -368,10 +421,13 @@ void _expectFullyRendered(WidgetTester tester, Finder finder) {
   expect(paragraph.didExceedMaxLines, isFalse);
 }
 
-PublicGasStation _station() {
+PublicGasStation _station({
+  String id = 'station-adaptive',
+  String name = _longStationName,
+}) {
   return PublicGasStation(
-    id: 'station-adaptive',
-    name: _longStationName,
+    id: id,
+    name: name,
     phone: '',
     address: 'Avenida Brigadeiro Faria Lima, 1234',
     neighborhood: 'Jardim das Laranjeiras e Palmeiras',
