@@ -204,6 +204,60 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('melhor preço é anunciado após identidade sem duplicação', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: DiscoveryStationCard(
+            station: _station(),
+            fuel: FuelChoice.gasoline,
+            isBestValue: true,
+            savingsPerLiter: 0.25,
+            isOpen: true,
+            onOpen: () {},
+          ),
+        ),
+      ),
+    );
+
+    final orderedNodes = find.semantics
+        .byPredicate((node) => node.identifier.startsWith('station-card-'))
+        .evaluate()
+        .toList(growable: false);
+
+    expect(
+      orderedNodes.map((node) => node.identifier),
+      orderedEquals(const [
+        'station-card-identity',
+        'station-card-prices',
+        'station-card-confidence',
+        'station-card-action',
+      ]),
+    );
+    expect(orderedNodes[0].label, contains(_longStationName));
+    expect(orderedNodes[0].label, contains('Posto aberto'));
+    expect(orderedNodes[1].label, contains('Menor preço de Gasolina'));
+    expect(
+      orderedNodes[1].label,
+      contains('R\$ 0,25/L abaixo do próximo preço'),
+    );
+    expect(orderedNodes[2].label, contains('4.7 · 20 avaliações'));
+    expect(orderedNodes[3].label, 'Abrir perfil do posto');
+    expect(
+      find.semantics
+          .byPredicate((node) => node.label.contains('Menor preço de Gasolina'))
+          .evaluate(),
+      hasLength(1),
+    );
+    expect(find.semantics.byAction(SemanticsAction.tap), findsOne);
+    semantics.dispose();
+  });
+
   testWidgets('swipe ignora busca e filtros', (tester) async {
     final searchController = TextEditingController();
     addTearDown(searchController.dispose);

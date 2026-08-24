@@ -49,9 +49,11 @@ class DiscoveryStationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (isBestValue) ...[
-                    _DecisionHeader(
-                      fuel: fuel,
-                      savingsPerLiter: savingsPerLiter,
+                    ExcludeSemantics(
+                      child: _DecisionHeader(
+                        fuel: fuel,
+                        savingsPerLiter: savingsPerLiter,
+                      ),
                     ),
                     const SizedBox(height: 14),
                   ],
@@ -163,20 +165,31 @@ class DiscoveryStationCard extends StatelessWidget {
       ('ethanol', 'Etanol'),
       ('dieselS10', 'Diesel S10'),
     ];
-    return fuels
-        .map((entry) {
-          final value = station.fuelPrices[entry.$1];
-          final formatted = value == null || value <= 0
-              ? 'Não informado'
-              : 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
-          final details = <String>[entry.$2, formatted];
-          if (fuel.fuelKey == entry.$1) details.add('combustível selecionado');
-          if (isBestValue && fuel.fuelKey == entry.$1) {
-            details.add('melhor valor');
-          }
-          return details.join(', ');
-        })
-        .join('. ');
+    final announcements = <String>[];
+    if (isBestValue) {
+      announcements.add('Menor preço de ${fuel.label}');
+      final savings = savingsPerLiter;
+      if (savings != null) {
+        announcements.add(
+          'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
+        );
+      }
+    }
+    announcements.addAll(
+      fuels.map((entry) {
+        final value = station.fuelPrices[entry.$1];
+        final formatted = value == null || value <= 0
+            ? 'Não informado'
+            : 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+        final details = <String>[entry.$2, formatted];
+        if (fuel.fuelKey == entry.$1) details.add('combustível selecionado');
+        if (isBestValue && fuel.fuelKey == entry.$1) {
+          details.add('melhor valor');
+        }
+        return details.join(', ');
+      }),
+    );
+    return announcements.join('. ');
   }
 }
 
