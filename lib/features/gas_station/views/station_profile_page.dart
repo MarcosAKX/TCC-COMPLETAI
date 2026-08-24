@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/station_logo.dart';
+import '../../../core/widgets/adaptive_action_row.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/widgets/custom_text_field.dart';
-import '../../../core/widgets/responsive_form_content.dart';
+import '../../../core/widgets/responsive_content.dart';
+import '../../../core/widgets/station_logo.dart';
 import '../services/gas_station_service.dart';
 
 class StationProfilePage extends StatefulWidget {
@@ -17,19 +18,12 @@ class StationProfilePage extends StatefulWidget {
 
 class _StationProfilePageState extends State<StationProfilePage> {
   final GasStationService _gasStationService = GasStationService();
-
   final TextEditingController _stationNameController = TextEditingController();
-
   final TextEditingController _cnpjController = TextEditingController();
-
   final TextEditingController _phoneController = TextEditingController();
-
   final TextEditingController _emailController = TextEditingController();
-
   final TextEditingController _addressController = TextEditingController();
-
   final TextEditingController _districtController = TextEditingController();
-
   final TextEditingController _cityController = TextEditingController();
 
   bool _isLoading = true;
@@ -55,7 +49,6 @@ class _StationProfilePageState extends State<StationProfilePage> {
   Future<void> _loadStationData() async {
     try {
       final data = await _gasStationService.getCurrentStationData();
-
       if (!mounted) return;
 
       if (data != null) {
@@ -72,9 +65,7 @@ class _StationProfilePageState extends State<StationProfilePage> {
         _showMessage('Não foi possível carregar o perfil do posto.');
       }
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -89,81 +80,83 @@ class _StationProfilePageState extends State<StationProfilePage> {
     required String field,
     required TextEditingController controller,
   }) async {
-    final TextEditingController tempController = TextEditingController(
-      text: controller.text,
-    );
+    final tempController = TextEditingController(text: controller.text);
 
-    await showDialog(
+    await showDialog<void>(
       context: context,
-      builder: (_) {
-        return AlertDialog(
-          backgroundColor: AppTheme.card,
-
-          title: Text(
-            'Alterar $title',
-            style: const TextStyle(color: AppTheme.textLight),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text(
+          'Alterar $title',
+          style: Theme.of(
+            dialogContext,
+          ).textTheme.titleLarge?.copyWith(color: AppTheme.textLight),
+        ),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(dialogContext).height * 0.45,
           ),
-
-          content: TextField(
-            controller: tempController,
-
-            style: const TextStyle(color: AppTheme.textLight),
-
-            decoration: InputDecoration(
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(color: AppTheme.outline),
-              ),
-
-              focusedBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: AppTheme.primaryInteractive),
+          child: SingleChildScrollView(
+            child: TextField(
+              controller: tempController,
+              style: Theme.of(
+                dialogContext,
+              ).textTheme.bodyLarge?.copyWith(color: AppTheme.textLight),
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppTheme.outline),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppTheme.primaryInteractive),
+                ),
               ),
             ),
           ),
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: AdaptiveActionRow(
+              breakpoint: 360,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'Cancelar',
+                    style: TextStyle(color: AppTheme.textMuted),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    try {
+                      await _gasStationService.updateStationField(
+                        field: field,
+                        value: tempController.text.trim(),
+                      );
+                      if (!mounted) return;
 
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: AppTheme.textMuted),
-              ),
+                      setState(() {
+                        controller.text = tempController.text.trim();
+                      });
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      _showMessage('$title atualizado com sucesso!');
+                    } catch (_) {
+                      if (mounted) {
+                        _showMessage('Não foi possível atualizar $title.');
+                      }
+                    }
+                  },
+                  child: const Text(
+                    'Salvar',
+                    style: TextStyle(color: AppTheme.primaryInteractive),
+                  ),
+                ),
+              ],
             ),
-
-            TextButton(
-              onPressed: () async {
-                try {
-                  await _gasStationService.updateStationField(
-                    field: field,
-                    value: tempController.text.trim(),
-                  );
-
-                  if (!mounted) return;
-
-                  setState(() {
-                    controller.text = tempController.text.trim();
-                  });
-
-                  Navigator.pop(context);
-
-                  _showMessage('$title atualizado com sucesso!');
-                } catch (_) {
-                  if (mounted) {
-                    _showMessage('Não foi possível atualizar $title.');
-                  }
-                }
-              },
-
-              child: const Text(
-                'Salvar',
-                style: TextStyle(color: AppTheme.primaryInteractive),
-              ),
-            ),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
 
     tempController.dispose();
@@ -171,113 +164,44 @@ class _StationProfilePageState extends State<StationProfilePage> {
 
   Future<void> _openChangePasswordModal() async {
     final oldPasswordController = TextEditingController();
-
     final newPasswordController = TextEditingController();
-
     final confirmPasswordController = TextEditingController();
 
-    await showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: AppTheme.card,
       isScrollControlled: true,
+      builder: (_) => _StationPasswordSheet(
+        currentPasswordController: oldPasswordController,
+        newPasswordController: newPasswordController,
+        confirmationController: confirmPasswordController,
+        onSave: () async {
+          if (oldPasswordController.text.isEmpty ||
+              newPasswordController.text.length < 6) {
+            _showMessage(
+              'Informe a senha atual e uma nova senha com pelo menos 6 caracteres.',
+            );
+            return;
+          }
+          if (newPasswordController.text != confirmPasswordController.text) {
+            _showMessage('As senhas não coincidem.');
+            return;
+          }
 
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 24,
-            right: 24,
-            top: 24,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          ),
+          try {
+            await _gasStationService.updatePassword(
+              oldPassword: oldPasswordController.text,
+              newPassword: newPasswordController.text,
+            );
+            if (!mounted) return;
 
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-
-              children: [
-                const Text(
-                  'Alterar senha',
-                  style: TextStyle(
-                    color: AppTheme.textLight,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                CustomTextField(
-                  label: 'Senha atual',
-                  hint: '********',
-                  icon: Icons.lock_outline,
-                  controller: oldPasswordController,
-                  obscureText: true,
-                ),
-
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  label: 'Nova senha',
-                  hint: '********',
-                  icon: Icons.lock_outline,
-                  controller: newPasswordController,
-                  obscureText: true,
-                ),
-
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  label: 'Confirmar nova senha',
-                  hint: '********',
-                  icon: Icons.lock_outline,
-                  controller: confirmPasswordController,
-                  obscureText: true,
-                ),
-
-                const SizedBox(height: 24),
-
-                CustomButton(
-                  text: 'Salvar nova senha',
-
-                  onPressed: () async {
-                    if (oldPasswordController.text.isEmpty ||
-                        newPasswordController.text.length < 6) {
-                      _showMessage(
-                        'Informe a senha atual e uma nova senha com pelo menos 6 caracteres.',
-                      );
-                      return;
-                    }
-
-                    if (newPasswordController.text !=
-                        confirmPasswordController.text) {
-                      _showMessage('As senhas não coincidem.');
-
-                      return;
-                    }
-
-                    try {
-                      await _gasStationService.updatePassword(
-                        oldPassword: oldPasswordController.text,
-                        newPassword: newPasswordController.text,
-                      );
-
-                      if (!mounted) return;
-
-                      Navigator.pop(context);
-
-                      _showMessage('Senha alterada com sucesso!');
-                    } catch (_) {
-                      if (mounted) {
-                        _showMessage('Erro ao alterar senha.');
-                      }
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+            Navigator.pop(context);
+            _showMessage('Senha alterada com sucesso!');
+          } catch (_) {
+            if (mounted) _showMessage('Erro ao alterar senha.');
+          }
+        },
+      ),
     );
 
     oldPasswordController.dispose();
@@ -285,236 +209,332 @@ class _StationProfilePageState extends State<StationProfilePage> {
     confirmPasswordController.dispose();
   }
 
-  Widget _buildInfoTile({
-    required String title,
-    required String value,
-    required IconData icon,
-    bool editable = false,
-    VoidCallback? onEdit,
-  }) {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        backgroundColor: AppTheme.background,
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          'Perfil do posto',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            color: AppTheme.textLight,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Configurações',
+            onPressed: () => Navigator.pushNamed(context, AppRoutes.settings),
+            icon: const Icon(Icons.settings, color: AppTheme.textLight),
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : StationProfileContent(
+              stationName: _stationNameController.text,
+              cnpj: _cnpjController.text,
+              phone: _phoneController.text,
+              email: _emailController.text,
+              address: _addressController.text,
+              neighborhood: _districtController.text,
+              city: _cityController.text,
+              onEditName: () => _editField(
+                title: 'Nome do posto',
+                field: 'name',
+                controller: _stationNameController,
+              ),
+              onEditPhone: () => _editField(
+                title: 'Telefone',
+                field: 'phone',
+                controller: _phoneController,
+              ),
+              onEditAddress: () => _editField(
+                title: 'Endereço',
+                field: 'address',
+                controller: _addressController,
+              ),
+              onEditNeighborhood: () => _editField(
+                title: 'Bairro',
+                field: 'neighborhood',
+                controller: _districtController,
+              ),
+              onEditCity: () => _editField(
+                title: 'Cidade',
+                field: 'city',
+                controller: _cityController,
+              ),
+              onChangePassword: _openChangePasswordModal,
+            ),
+    );
+  }
+}
+
+class StationProfileContent extends StatelessWidget {
+  const StationProfileContent({
+    super.key,
+    required this.stationName,
+    required this.cnpj,
+    required this.phone,
+    required this.email,
+    required this.address,
+    required this.neighborhood,
+    required this.city,
+    required this.onEditName,
+    required this.onEditPhone,
+    required this.onEditAddress,
+    required this.onEditNeighborhood,
+    required this.onEditCity,
+    required this.onChangePassword,
+  });
+
+  final String stationName;
+  final String cnpj;
+  final String phone;
+  final String email;
+  final String address;
+  final String neighborhood;
+  final String city;
+  final VoidCallback onEditName;
+  final VoidCallback onEditPhone;
+  final VoidCallback onEditAddress;
+  final VoidCallback onEditNeighborhood;
+  final VoidCallback onEditCity;
+  final VoidCallback onChangePassword;
+
+  @override
+  Widget build(BuildContext context) {
+    return ResponsiveContent(
+      maxWidth: 560,
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+      scrollable: true,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppTheme.card,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.outline),
+        ),
+        child: Column(
+          children: [
+            StationLogo(stationName: stationName, size: 72),
+            const SizedBox(height: 16),
+            Text(
+              stationName.isEmpty ? 'Perfil do posto' : stationName,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 24),
+            _StationInfoTile(
+              title: 'Nome do posto',
+              value: stationName,
+              icon: Icons.local_gas_station,
+              onEdit: onEditName,
+            ),
+            const SizedBox(height: 16),
+            _StationInfoTile(
+              title: 'CNPJ',
+              value: cnpj,
+              icon: Icons.badge_outlined,
+            ),
+            const SizedBox(height: 16),
+            _StationInfoTile(
+              title: 'Telefone',
+              value: phone,
+              icon: Icons.phone_outlined,
+              onEdit: onEditPhone,
+            ),
+            const SizedBox(height: 16),
+            _StationInfoTile(
+              title: 'E-mail administrativo',
+              value: email,
+              icon: Icons.email_outlined,
+            ),
+            const SizedBox(height: 16),
+            _StationInfoTile(
+              title: 'Endereço',
+              value: address,
+              icon: Icons.map_outlined,
+              onEdit: onEditAddress,
+            ),
+            const SizedBox(height: 16),
+            _StationInfoTile(
+              title: 'Bairro',
+              value: neighborhood,
+              icon: Icons.location_city,
+              onEdit: onEditNeighborhood,
+            ),
+            const SizedBox(height: 16),
+            _StationInfoTile(
+              title: 'Cidade',
+              value: city,
+              icon: Icons.location_on_outlined,
+              onEdit: onEditCity,
+            ),
+            const SizedBox(height: 24),
+            AdaptiveActionRow(
+              children: [
+                CustomButton(
+                  key: const Key('station-profile-change-password-action'),
+                  text: 'Alterar senha',
+                  onPressed: onChangePassword,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StationPasswordSheet extends StatelessWidget {
+  const _StationPasswordSheet({
+    required this.currentPasswordController,
+    required this.newPasswordController,
+    required this.confirmationController,
+    required this.onSave,
+  });
+
+  final TextEditingController currentPasswordController;
+  final TextEditingController newPasswordController;
+  final TextEditingController confirmationController;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final maximumHeight =
+        (mediaQuery.size.height - mediaQuery.viewInsets.bottom - 16)
+            .clamp(240.0, mediaQuery.size.height * 0.92)
+            .toDouble();
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: mediaQuery.viewInsets.bottom),
+      child: SafeArea(
+        top: false,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maximumHeight),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Alterar senha',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.textLight,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        CustomTextField(
+                          label: 'Senha atual',
+                          hint: '********',
+                          icon: Icons.lock_outline,
+                          controller: currentPasswordController,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: 'Nova senha',
+                          hint: '********',
+                          icon: Icons.lock_outline,
+                          controller: newPasswordController,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomTextField(
+                          label: 'Confirmar nova senha',
+                          hint: '********',
+                          icon: Icons.lock_outline,
+                          controller: confirmationController,
+                          obscureText: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                CustomButton(text: 'Salvar nova senha', onPressed: onSave),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StationInfoTile extends StatelessWidget {
+  const _StationInfoTile({
+    required this.title,
+    required this.value,
+    required this.icon,
+    this.onEdit,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-
       decoration: BoxDecoration(
         color: AppTheme.background,
         borderRadius: BorderRadius.circular(16),
-
         border: Border.all(color: AppTheme.outline),
       ),
-
       child: Row(
         children: [
-          Icon(icon, color: AppTheme.primaryInteractive),
-
-          const SizedBox(width: 14),
-
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: Icon(icon, color: AppTheme.primaryInteractive),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppTheme.textMuted,
+                  ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: textTheme.bodyLarge?.copyWith(
                     color: AppTheme.textLight,
-                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-
-          if (editable)
+          if (onEdit != null)
             IconButton(
+              tooltip: 'Editar $title',
               onPressed: onEdit,
               icon: const Icon(Icons.edit, color: AppTheme.primaryInteractive),
             ),
         ],
       ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-
-        elevation: 0,
-
-        centerTitle: true,
-
-        title: const Text(
-          'Perfil do posto',
-          style: TextStyle(
-            color: AppTheme.textLight,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.settings);
-            },
-
-            icon: const Icon(Icons.settings, color: AppTheme.textLight),
-          ),
-        ],
-      ),
-
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: SingleChildScrollView(
-                child: ResponsiveFormContent(
-                  maxWidth: 560,
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-
-                    decoration: BoxDecoration(
-                      color: AppTheme.card,
-
-                      borderRadius: BorderRadius.circular(20),
-
-                      border: Border.all(color: AppTheme.outline),
-                    ),
-
-                    child: Column(
-                      children: [
-                        StationLogo(
-                          stationName: _stationNameController.text,
-                          size: 72,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        Text(
-                          _stationNameController.text.isEmpty
-                              ? 'Perfil do posto'
-                              : _stationNameController.text,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        _buildInfoTile(
-                          title: 'Nome do posto',
-                          value: _stationNameController.text,
-                          icon: Icons.local_gas_station,
-                          editable: true,
-                          onEdit: () {
-                            _editField(
-                              title: 'Nome do posto',
-                              field: 'name',
-                              controller: _stationNameController,
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        _buildInfoTile(
-                          title: 'CNPJ',
-                          value: _cnpjController.text,
-                          icon: Icons.badge_outlined,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        _buildInfoTile(
-                          title: 'Telefone',
-                          value: _phoneController.text,
-                          icon: Icons.phone_outlined,
-                          editable: true,
-                          onEdit: () {
-                            _editField(
-                              title: 'Telefone',
-                              field: 'phone',
-                              controller: _phoneController,
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        _buildInfoTile(
-                          title: 'E-mail administrativo',
-                          value: _emailController.text,
-                          icon: Icons.email_outlined,
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        _buildInfoTile(
-                          title: 'Endereço',
-                          value: _addressController.text,
-                          icon: Icons.map_outlined,
-                          editable: true,
-                          onEdit: () {
-                            _editField(
-                              title: 'Endereço',
-                              field: 'address',
-                              controller: _addressController,
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        _buildInfoTile(
-                          title: 'Bairro',
-                          value: _districtController.text,
-                          icon: Icons.location_city,
-                          editable: true,
-                          onEdit: () {
-                            _editField(
-                              title: 'Bairro',
-                              field: 'neighborhood',
-                              controller: _districtController,
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        _buildInfoTile(
-                          title: 'Cidade',
-                          value: _cityController.text,
-                          icon: Icons.location_on_outlined,
-                          editable: true,
-                          onEdit: () {
-                            _editField(
-                              title: 'Cidade',
-                              field: 'city',
-                              controller: _cityController,
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        CustomButton(
-                          text: 'Alterar senha',
-                          onPressed: _openChangePasswordModal,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
     );
   }
 }
