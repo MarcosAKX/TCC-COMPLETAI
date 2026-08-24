@@ -148,6 +148,165 @@ void main() {
       },
     );
   }
+
+  testWidgets('card anuncia conteúdo antes da ação sem duplicar toque', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: DiscoveryStationCard(
+            station: _station(),
+            fuel: FuelChoice.gasoline,
+            isBestValue: false,
+            isOpen: false,
+            onOpen: () {},
+          ),
+        ),
+      ),
+    );
+
+    final orderedNodes = find.semantics
+        .byPredicate((node) => node.identifier.startsWith('station-card-'))
+        .evaluate()
+        .toList(growable: false);
+
+    expect(
+      orderedNodes.map((node) => node.identifier),
+      orderedEquals(const [
+        'station-card-identity',
+        'station-card-prices',
+        'station-card-confidence',
+        'station-card-action',
+      ]),
+    );
+    expect(orderedNodes[0].label, contains(_longStationName));
+    expect(orderedNodes[0].label, contains('Posto fechado'));
+    expect(orderedNodes[2].label, contains('4.7 · 20 avaliações'));
+    expect(orderedNodes[2].label, contains('Atualizado'));
+    expect(orderedNodes[3].label, 'Abrir perfil do posto');
+    expect(
+      orderedNodes
+          .take(3)
+          .every(
+            (node) => !node.getSemanticsData().hasAction(SemanticsAction.tap),
+          ),
+      isTrue,
+    );
+    expect(
+      orderedNodes[3].getSemanticsData().hasAction(SemanticsAction.tap),
+      isTrue,
+    );
+    expect(find.semantics.byAction(SemanticsAction.tap), findsOne);
+    semantics.dispose();
+  });
+
+  testWidgets('swipe ignora busca e filtros', (tester) async {
+    final searchController = TextEditingController();
+    addTearDown(searchController.dispose);
+    var selectedFuel = FuelChoice.gasoline;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            body: StationDiscoveryContent(
+              snapshot: AsyncSnapshot.withData(ConnectionState.done, [
+                _station(),
+              ]),
+              searchController: searchController,
+              fuel: selectedFuel,
+              onlyOpen: false,
+              minimumRatingFour: false,
+              showFuelTip: true,
+              onRefresh: () async {},
+              onRetry: () async {},
+              onLocationTap: () {},
+              onSearchChanged: (_) {},
+              onClearSearch: () {},
+              onFuelChanged: (fuel) => setState(() => selectedFuel = fuel),
+              onDismissFuelTip: () {},
+              onOnlyOpenChanged: (_) {},
+              onShowFilters: () {},
+              onOpenStation: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.drag(find.byType(TextField), const Offset(-90, 0));
+    await tester.pumpAndSettle();
+    expect(selectedFuel, FuelChoice.gasoline);
+
+    await tester.drag(
+      find.widgetWithText(OutlinedButton, 'Filtros'),
+      const Offset(-90, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(selectedFuel, FuelChoice.gasoline);
+  });
+
+  testWidgets('swipe troca combustível no seletor e nos resultados', (
+    tester,
+  ) async {
+    final searchController = TextEditingController();
+    addTearDown(searchController.dispose);
+    var selectedFuel = FuelChoice.gasoline;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            body: StationDiscoveryContent(
+              snapshot: AsyncSnapshot.withData(ConnectionState.done, [
+                _station(),
+              ]),
+              searchController: searchController,
+              fuel: selectedFuel,
+              onlyOpen: false,
+              minimumRatingFour: false,
+              showFuelTip: false,
+              onRefresh: () async {},
+              onRetry: () async {},
+              onLocationTap: () {},
+              onSearchChanged: (_) {},
+              onClearSearch: () {},
+              onFuelChanged: (fuel) => setState(() => selectedFuel = fuel),
+              onDismissFuelTip: () {},
+              onOnlyOpenChanged: (_) {},
+              onShowFilters: () {},
+              onOpenStation: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.drag(
+      find.byKey(const Key('fuel-choice-band')),
+      const Offset(-90, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(selectedFuel, FuelChoice.ethanol);
+
+    final firstCard = find.byKey(
+      const Key('discovery-station-station-adaptive'),
+    );
+    await tester.dragUntilVisible(
+      firstCard,
+      find.byKey(const Key('station-discovery-scroll')),
+      const Offset(0, -200),
+    );
+    await tester.drag(firstCard, const Offset(-90, 0));
+    await tester.pumpAndSettle();
+    expect(selectedFuel, FuelChoice.diesel);
+  });
 }
 
 void _expectFullyRendered(WidgetTester tester, Finder finder) {

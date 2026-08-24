@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fuel_price_grid.dart';
@@ -27,15 +28,19 @@ class DiscoveryStationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.outline),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
+    final freshness = _stationFreshness(station.updatedAt, DateTime.now());
+    final rating = _stationRating(station);
+
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: Material(
+        color: AppTheme.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: Stack(
           children: [
             Padding(
@@ -50,51 +55,76 @@ class DiscoveryStationCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                   ],
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      StationLogo(stationName: station.name, size: 46),
-                      const SizedBox(width: 11),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 6,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text(
-                                  station.name,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                StatusPill(isOpen: isOpen, compact: true),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              station.neighborhood.isEmpty
-                                  ? station.city
-                                  : station.neighborhood,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall,
-                            ),
-                          ],
+                  Semantics(
+                    identifier: 'station-card-identity',
+                    sortKey: OrdinalSortKey(1),
+                    container: true,
+                    excludeSemantics: true,
+                    label:
+                        '${station.name}. ${isOpen ? 'Posto aberto' : 'Posto fechado'}',
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StationLogo(stationName: station.name, size: 46),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    station.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  StatusPill(isOpen: isOpen, compact: true),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                station.neighborhood.isEmpty
+                                    ? station.city
+                                    : station.neighborhood,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  FuelPriceGrid(
-                    prices: station.fuelPrices,
-                    selectedFuel: fuel,
-                    bestValueKeys: isBestValue ? {fuel.fuelKey} : const {},
+                  Semantics(
+                    identifier: 'station-card-prices',
+                    sortKey: OrdinalSortKey(2),
+                    container: true,
+                    excludeSemantics: true,
+                    label: _priceSemanticsLabel(),
+                    child: FuelPriceGrid(
+                      prices: station.fuelPrices,
+                      selectedFuel: fuel,
+                      bestValueKeys: isBestValue ? {fuel.fuelKey} : const {},
+                    ),
                   ),
                   const SizedBox(height: 10),
-                  _StationTrustLine(station: station),
+                  Semantics(
+                    identifier: 'station-card-confidence',
+                    sortKey: OrdinalSortKey(3),
+                    container: true,
+                    excludeSemantics: true,
+                    label: [rating, freshness].whereType<String>().join('. '),
+                    child: _StationTrustLine(
+                      rating: rating,
+                      freshness: freshness,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -109,10 +139,44 @@ class DiscoveryStationCard extends StatelessWidget {
                   child: SizedBox(width: 4),
                 ),
               ),
+            Positioned.fill(
+              child: Semantics(
+                identifier: 'station-card-action',
+                sortKey: OrdinalSortKey(4),
+                container: true,
+                excludeSemantics: true,
+                button: true,
+                label: 'Abrir perfil do posto',
+                onTap: onOpen,
+                child: InkWell(excludeFromSemantics: true, onTap: onOpen),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  String _priceSemanticsLabel() {
+    const fuels = <(String, String)>[
+      ('gasolineRegular', 'Gasolina'),
+      ('ethanol', 'Etanol'),
+      ('dieselS10', 'Diesel S10'),
+    ];
+    return fuels
+        .map((entry) {
+          final value = station.fuelPrices[entry.$1];
+          final formatted = value == null || value <= 0
+              ? 'Não informado'
+              : 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+          final details = <String>[entry.$2, formatted];
+          if (fuel.fuelKey == entry.$1) details.add('combustível selecionado');
+          if (isBestValue && fuel.fuelKey == entry.$1) {
+            details.add('melhor valor');
+          }
+          return details.join(', ');
+        })
+        .join('. ');
   }
 }
 
@@ -173,16 +237,13 @@ class _DecisionHeader extends StatelessWidget {
 }
 
 class _StationTrustLine extends StatelessWidget {
-  final PublicGasStation station;
+  final String rating;
+  final String? freshness;
 
-  const _StationTrustLine({required this.station});
+  const _StationTrustLine({required this.rating, required this.freshness});
 
   @override
   Widget build(BuildContext context) {
-    final rating = station.reviewCount == 0
-        ? 'Sem avaliações'
-        : '${station.averageRating.toStringAsFixed(1)} · ${station.reviewCount} avaliações';
-    final freshness = _freshness(station.updatedAt, DateTime.now());
     return LayoutBuilder(
       builder: (context, constraints) => Wrap(
         spacing: 12,
@@ -190,26 +251,30 @@ class _StationTrustLine extends StatelessWidget {
         children: [
           _MetaItem(icon: Icons.star_rounded, text: rating, rating: true),
           if (freshness != null)
-            _MetaItem(icon: Icons.schedule_rounded, text: freshness),
+            _MetaItem(icon: Icons.schedule_rounded, text: freshness!),
         ],
       ),
     );
   }
+}
 
-  String? _freshness(DateTime? updatedAt, DateTime now) {
-    if (updatedAt == null) return null;
-    final difference = now.difference(updatedAt);
-    if (difference.isNegative || difference.inMinutes < 1) {
-      return 'Atualizado agora';
-    }
-    if (difference.inMinutes < 60) {
-      return 'Atualizado há ${difference.inMinutes} min';
-    }
-    if (difference.inHours < 24) {
-      return 'Atualizado há ${difference.inHours} h';
-    }
-    return 'Atualizado há ${difference.inDays} d';
+String _stationRating(PublicGasStation station) => station.reviewCount == 0
+    ? 'Sem avaliações'
+    : '${station.averageRating.toStringAsFixed(1)} · ${station.reviewCount} avaliações';
+
+String? _stationFreshness(DateTime? updatedAt, DateTime now) {
+  if (updatedAt == null) return null;
+  final difference = now.difference(updatedAt);
+  if (difference.isNegative || difference.inMinutes < 1) {
+    return 'Atualizado agora';
   }
+  if (difference.inMinutes < 60) {
+    return 'Atualizado há ${difference.inMinutes} min';
+  }
+  if (difference.inHours < 24) {
+    return 'Atualizado há ${difference.inHours} h';
+  }
+  return 'Atualizado há ${difference.inDays} d';
 }
 
 class _MetaItem extends StatelessWidget {

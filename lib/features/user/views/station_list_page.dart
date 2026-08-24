@@ -305,75 +305,79 @@ class StationDiscoveryContent extends StatelessWidget {
     final allStations = snapshot.data ?? const <PublicGasStation>[];
     return ColoredBox(
       color: AppTheme.discoveryBackground,
-      child: FuelSwipeSurface(
-        choice: fuel,
-        onChanged: onFuelChanged,
-        child: RefreshIndicator.adaptive(
-          onRefresh: onRefresh,
-          child: ListView(
-            key: const Key('station-discovery-scroll'),
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(bottom: 28),
-            children: [
-              WelcomeSummaryHeader(
-                stationCount: allStations.length,
-                onLocationTap: onLocationTap,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                child: TextField(
-                  controller: searchController,
-                  onChanged: onSearchChanged,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar posto ou bairro',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            tooltip: 'Limpar busca',
-                            onPressed: onClearSearch,
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                  ),
-                ),
-              ),
-              FuelChoiceSelector(choice: fuel, onChanged: onFuelChanged),
-              if (showFuelTip) FuelDiscoveryTip(onDismiss: onDismissFuelTip),
-              Material(
-                color: AppTheme.discoveryBackground,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.spaceBetween,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Flexible(child: Text('Só abertos')),
-                          Switch.adaptive(
-                            value: onlyOpen,
-                            onChanged: onOnlyOpenChanged,
-                          ),
-                        ],
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: onShowFilters,
-                        icon: const Icon(Icons.tune_rounded, size: 18),
-                        label: Text(
-                          minimumRatingFour ? 'Filtros (1)' : 'Filtros',
+      child: RefreshIndicator.adaptive(
+        onRefresh: onRefresh,
+        child: ListView(
+          key: const Key('station-discovery-scroll'),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 28),
+          children: [
+            WelcomeSummaryHeader(
+              stationCount: allStations.length,
+              onLocationTap: onLocationTap,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: TextField(
+                controller: searchController,
+                onChanged: onSearchChanged,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Buscar posto ou bairro',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Limpar busca',
+                          onPressed: onClearSearch,
+                          icon: const Icon(Icons.close_rounded),
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
-              ..._buildResults(allStations),
-            ],
-          ),
+            ),
+            FuelSwipeSurface(
+              choice: fuel,
+              onChanged: onFuelChanged,
+              child: FuelChoiceSelector(choice: fuel, onChanged: onFuelChanged),
+            ),
+            if (showFuelTip) FuelDiscoveryTip(onDismiss: onDismissFuelTip),
+            Material(
+              color: AppTheme.discoveryBackground,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Flexible(child: Text('Só abertos')),
+                        Switch.adaptive(
+                          value: onlyOpen,
+                          onChanged: onOnlyOpenChanged,
+                        ),
+                      ],
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: onShowFilters,
+                      icon: const Icon(Icons.tune_rounded, size: 18),
+                      label: Text(
+                        minimumRatingFour ? 'Filtros (1)' : 'Filtros',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            FuelSwipeSurface(
+              choice: fuel,
+              onChanged: onFuelChanged,
+              child: Column(children: _buildResults(allStations)),
+            ),
+          ],
         ),
       ),
     );
