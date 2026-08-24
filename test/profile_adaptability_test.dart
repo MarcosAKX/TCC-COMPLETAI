@@ -221,7 +221,71 @@ void main() {
     await tester.pumpAndSettle();
 
     final save = find.byKey(const Key('profile-password-save-action'));
+    await Scrollable.ensureVisible(tester.element(save), alignment: 1);
+    await tester.pump();
     expect(save.hitTestable(), findsOneWidget);
+    expectNoLayoutExceptions(tester);
+  });
+
+  testWidgets('sheet de senha do usuário cabe acima do teclado em paisagem', (
+    tester,
+  ) async {
+    final current = TextEditingController();
+    final next = TextEditingController();
+    final confirmation = TextEditingController();
+    addTearDown(current.dispose);
+    addTearDown(next.dispose);
+    addTearDown(confirmation.dispose);
+
+    await _pumpPasswordSheet(
+      tester,
+      child: ProfilePasswordSheet(
+        currentPasswordController: current,
+        newPasswordController: next,
+        confirmationController: confirmation,
+        onSave: () {},
+      ),
+    );
+
+    final sheet = find.byKey(const Key('profile-password-sheet'));
+    expect(tester.getTopLeft(sheet).dy, greaterThanOrEqualTo(0));
+    expect(tester.getBottomRight(sheet).dy, lessThanOrEqualTo(80));
+    final save = find.widgetWithText(ElevatedButton, 'Salvar nova senha');
+    await Scrollable.ensureVisible(tester.element(save), alignment: 1);
+    await tester.pump();
+    expect(save.hitTestable(), findsOneWidget);
+    expect(tester.getSemantics(save).label, contains('Salvar nova senha'));
+    expectNoLayoutExceptions(tester);
+  });
+
+  testWidgets('sheet de senha do posto cabe e mantém ação acessível', (
+    tester,
+  ) async {
+    final current = TextEditingController();
+    final next = TextEditingController();
+    final confirmation = TextEditingController();
+    addTearDown(current.dispose);
+    addTearDown(next.dispose);
+    addTearDown(confirmation.dispose);
+
+    await _pumpPasswordSheet(
+      tester,
+      child: StationPasswordSheet(
+        currentPasswordController: current,
+        newPasswordController: next,
+        confirmationController: confirmation,
+        onSave: () {},
+      ),
+    );
+
+    final sheet = find.byKey(const Key('station-password-sheet'));
+    expect(tester.getTopLeft(sheet).dy, greaterThanOrEqualTo(0));
+    expect(tester.getBottomRight(sheet).dy, lessThanOrEqualTo(80));
+    final save = find.widgetWithText(ElevatedButton, 'Salvar nova senha');
+    await Scrollable.ensureVisible(tester.element(save), alignment: 1);
+    await tester.pump();
+    expect(save.hitTestable(), findsOneWidget);
+    expect(tester.getSemantics(save).label, contains('Salvar nova senha'));
     expectNoLayoutExceptions(tester);
   });
 
@@ -326,6 +390,38 @@ Future<void> _pumpSheetLauncher(
     adaptiveLargeText,
   );
   await tester.tap(find.widgetWithText(FilledButton, 'Abrir sheet'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _pumpPasswordSheet(
+  WidgetTester tester, {
+  required Widget child,
+}) async {
+  await pumpAdaptive(
+    tester,
+    MaterialApp(
+      theme: AppTheme.lightTheme,
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: FilledButton(
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => child,
+            ),
+            child: const Text('Abrir senha em paisagem'),
+          ),
+        ),
+      ),
+    ),
+    const AdaptiveTestScenario(
+      name: '640x360 @ 1.3 com teclado',
+      size: Size(640, 360),
+      textScaleFactor: 1.3,
+      viewInsets: EdgeInsets.only(bottom: 280),
+    ),
+  );
+  await tester.tap(find.text('Abrir senha em paisagem'));
   await tester.pumpAndSettle();
 }
 

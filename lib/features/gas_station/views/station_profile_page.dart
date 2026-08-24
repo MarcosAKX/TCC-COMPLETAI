@@ -171,7 +171,7 @@ class _StationProfilePageState extends State<StationProfilePage> {
       context: context,
       backgroundColor: AppTheme.card,
       isScrollControlled: true,
-      builder: (_) => _StationPasswordSheet(
+      builder: (_) => StationPasswordSheet(
         currentPasswordController: oldPasswordController,
         newPasswordController: newPasswordController,
         confirmationController: confirmPasswordController,
@@ -391,8 +391,9 @@ class StationProfileContent extends StatelessWidget {
   }
 }
 
-class _StationPasswordSheet extends StatelessWidget {
-  const _StationPasswordSheet({
+class StationPasswordSheet extends StatelessWidget {
+  const StationPasswordSheet({
+    super.key,
     required this.currentPasswordController,
     required this.newPasswordController,
     required this.confirmationController,
@@ -408,8 +409,8 @@ class _StationPasswordSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final maximumHeight =
-        (mediaQuery.size.height - mediaQuery.viewInsets.bottom - 16)
-            .clamp(240.0, mediaQuery.size.height * 0.92)
+        (mediaQuery.size.height - mediaQuery.viewInsets.bottom)
+            .clamp(0.0, mediaQuery.size.height * 0.92)
             .toDouble();
 
     return AnimatedPadding(
@@ -419,54 +420,53 @@ class _StationPasswordSheet extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: ConstrainedBox(
+          key: const Key('station-password-sheet'),
           constraints: BoxConstraints(maxHeight: maximumHeight),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Alterar senha',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.textLight,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        CustomTextField(
-                          label: 'Senha atual',
-                          hint: '********',
-                          icon: Icons.lock_outline,
-                          controller: currentPasswordController,
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Nova senha',
-                          hint: '********',
-                          icon: Icons.lock_outline,
-                          controller: newPasswordController,
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Confirmar nova senha',
-                          hint: '********',
-                          icon: Icons.lock_outline,
-                          controller: confirmationController,
-                          obscureText: true,
-                        ),
-                      ],
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Alterar senha',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: AppTheme.textLight,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                CustomButton(text: 'Salvar nova senha', onPressed: onSave),
-              ],
+                  const SizedBox(height: 20),
+                  Column(
+                    children: [
+                      CustomTextField(
+                        label: 'Senha atual',
+                        hint: '********',
+                        icon: Icons.lock_outline,
+                        controller: currentPasswordController,
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Nova senha',
+                        hint: '********',
+                        icon: Icons.lock_outline,
+                        controller: newPasswordController,
+                        obscureText: true,
+                      ),
+                      const SizedBox(height: 16),
+                      CustomTextField(
+                        label: 'Confirmar nova senha',
+                        hint: '********',
+                        icon: Icons.lock_outline,
+                        controller: confirmationController,
+                        obscureText: true,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  CustomButton(text: 'Salvar nova senha', onPressed: onSave),
+                ],
+              ),
             ),
           ),
         ),
