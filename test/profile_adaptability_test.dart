@@ -15,6 +15,74 @@ const _longAddress =
     'Avenida Brigadeiro Faria Lima, 1234, Jardim das Laranjeiras e Palmeiras';
 
 void main() {
+  test('rota usa Google Maps com destino completo e modo carro', () async {
+    Uri? openedUri;
+
+    final opened = await openStationDirections(
+      _station(),
+      launcher: (uri) async {
+        openedUri = uri;
+        return true;
+      },
+    );
+
+    expect(opened, isTrue);
+    expect(openedUri?.scheme, 'https');
+    expect(openedUri?.host, 'www.google.com');
+    expect(openedUri?.path, '/maps/dir/');
+    expect(openedUri?.queryParameters, {
+      'api': '1',
+      'destination':
+          'Avenida Brigadeiro Faria Lima, 1234, Jardim das Laranjeiras e Palmeiras - Jardim das Laranjeiras e Palmeiras - Bebedouro, SP, Brasil',
+      'travelmode': 'driving',
+    });
+    expect(openedUri?.queryParameters.containsKey('origin'), isFalse);
+  });
+
+  testWidgets('Como chegar dispara navegação e mantém alvo acessível', (
+    tester,
+  ) async {
+    var directionsRequested = false;
+    await pumpAdaptive(
+      tester,
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: PublicStationProfileContent(
+            station: _station(),
+            reviews: [_review()],
+            favoriteStream: Stream.value(false),
+            onRefresh: () async {},
+            onDirections: () => directionsRequested = true,
+            onReview: () {},
+            onToggleFavorite: (_) async {},
+            onShowAllReviews: () {},
+            onReportReview: (_) {},
+            onReportStation: () {},
+          ),
+        ),
+      ),
+      adaptiveSmallPhone,
+    );
+    await tester.pump();
+
+    final action = find.widgetWithText(FilledButton, 'Como chegar');
+    await tester.dragUntilVisible(
+      action,
+      find.byType(Scrollable).first,
+      const Offset(0, -220),
+    );
+    await Scrollable.ensureVisible(tester.element(action), alignment: 0.5);
+    await tester.pump();
+
+    expect(action.hitTestable(), findsOneWidget);
+    expect(tester.getSize(action).height, greaterThanOrEqualTo(48));
+    expect(find.byIcon(Icons.directions_outlined), findsOneWidget);
+    await tester.tap(action);
+    expect(directionsRequested, isTrue);
+    expectNoLayoutExceptions(tester);
+  });
+
   for (final scenario in [
     adaptiveSmallPhone,
     adaptiveLargeText,
@@ -134,7 +202,7 @@ void main() {
               reviews: [_review()],
               favoriteStream: Stream.value(false),
               onRefresh: () async {},
-              onCopyAddress: () {},
+              onDirections: () {},
               onReview: () {},
               onToggleFavorite: (_) async {},
               onShowAllReviews: () {},

@@ -14,6 +14,7 @@ Flutter · Dart · Firebase Auth · Cloud Firestore · Android (entrega principa
 | [STRUCTURE.md](STRUCTURE.md) | organização de pastas e convenções |
 | [DESIGN.md](DESIGN.md) | design system e regras de interface |
 | [PRODUCT.md](PRODUCT.md) | escopo, usuários e princípios de produto |
+| [AGENTS.md](AGENTS.md) | regras obrigatórias para implementação e integração |
 | [docs/](docs/README.md) | modelo de dados, segurança, roadmap |
 
 ## Setup rápido

@@ -1,6 +1,6 @@
 # Documentação técnica — Completai
 
-Retrato do projeto em **17 de agosto de 2026**. Documentos descrevem código existente; recomendações não representam funcionalidades já implementadas.
+Retrato do projeto atualizado em **24 de agosto de 2026**. Documentos descrevem código existente; recomendações não representam funcionalidades já implementadas.
 
 ## Documentos canônicos (raiz)
 
@@ -10,6 +10,7 @@ Retrato do projeto em **17 de agosto de 2026**. Documentos descrevem código exi
 | [STRUCTURE.md](../STRUCTURE.md) | pastas, rotas, nomenclatura |
 | [DESIGN.md](../DESIGN.md) | design system e regras de interface |
 | [PRODUCT.md](../PRODUCT.md) | propósito, escopo, princípios de produto |
+| [AGENTS.md](../AGENTS.md) | regras obrigatórias para implementação e integração |
 
 ## Documentos complementares
 
@@ -33,7 +34,15 @@ Pontos críticos:
 - **P1 — ciclo de vida:** exclusão de documento Firestore não remove subcoleções;
 - **P1 — escalabilidade:** listagem executa consulta de avaliações por posto (N+1);
 - **P1 — arquitetura:** telas principais acumulam estado, regra de apresentação e coordenação de dados;
-- **P1 — UX:** dashboard é megaform; identidade visual ainda genérica apesar dos tokens (ver auditoria).
+- **P1 — validação:** dashboard adaptativo possui cobertura automatizada, mas a inspeção Android autenticada ainda requer uma conta de posto.
+
+## Estado atual da interface
+
+- Cenários adaptativos mínimos: `320×568 @ 1,0×`, `360×800 @ 2,0×` e `640×360 @ 1,3×`.
+- Conteúdo principal usa primitivas responsivas, reflow orientado pelo conteúdo e superfícies roláveis.
+- O dashboard usa navegação inferior abaixo de `840 dp` e `NavigationRail` a partir de `840 dp`.
+- Login, descoberta, perfil do usuário e perfil público do posto foram inspecionados em emulador Android em retrato, paisagem e fonte `1,3×`.
+- Consulte [Design e interface](DESIGN-E-INTERFACE.md) para o contrato completo e as limitações registradas.
 
 ## Escopo da revisão
 

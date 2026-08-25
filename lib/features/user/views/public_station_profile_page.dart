@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/adaptive_action_row.dart';
@@ -13,6 +13,25 @@ import '../../../core/widgets/trust_badge.dart';
 import '../../gas_station/models/public_gas_station.dart';
 import '../../gas_station/models/station_review.dart';
 import '../services/public_station_service.dart';
+
+typedef ExternalUriLauncher = Future<bool> Function(Uri uri);
+
+Uri buildStationDirectionsUri(PublicGasStation station) {
+  return Uri.https('www.google.com', '/maps/dir/', {
+    'api': '1',
+    'destination': '${station.fullAddress}, SP, Brasil',
+    'travelmode': 'driving',
+  });
+}
+
+Future<bool> openStationDirections(
+  PublicGasStation station, {
+  ExternalUriLauncher? launcher,
+}) {
+  final open =
+      launcher ?? (uri) => launchUrl(uri, mode: LaunchMode.externalApplication);
+  return open(buildStationDirectionsUri(station));
+}
 
 class PublicStationProfilePage extends StatefulWidget {
   final String stationId;
@@ -181,12 +200,20 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
             reviews: _reviews,
             favoriteStream: _service.watchIsFavorite(station.id),
             onRefresh: _reload,
-            onCopyAddress: () async {
-              await Clipboard.setData(ClipboardData(text: station.fullAddress));
-              if (mounted) {
-                _showMessage(
-                  'Endereço copiado. Abra no seu aplicativo de mapas.',
-                );
+            onDirections: () async {
+              try {
+                final opened = await openStationDirections(station);
+                if (!opened && mounted) {
+                  _showMessage(
+                    'Não foi possível abrir o mapa. Verifique se há um aplicativo de navegação disponível.',
+                  );
+                }
+              } catch (_) {
+                if (mounted) {
+                  _showMessage(
+                    'Não foi possível abrir o mapa. Tente novamente.',
+                  );
+                }
               }
             },
             onReview: _openReviewDialog,
@@ -219,7 +246,7 @@ class PublicStationProfileContent extends StatelessWidget {
     required this.reviews,
     required this.favoriteStream,
     required this.onRefresh,
-    required this.onCopyAddress,
+    required this.onDirections,
     required this.onReview,
     required this.onToggleFavorite,
     required this.onShowAllReviews,
@@ -231,7 +258,7 @@ class PublicStationProfileContent extends StatelessWidget {
   final List<StationReview> reviews;
   final Stream<bool> favoriteStream;
   final Future<void> Function() onRefresh;
-  final VoidCallback onCopyAddress;
+  final VoidCallback onDirections;
   final VoidCallback onReview;
   final Future<void> Function(bool favorite) onToggleFavorite;
   final VoidCallback onShowAllReviews;
@@ -283,9 +310,9 @@ class PublicStationProfileContent extends StatelessWidget {
             _InformationCard(station: station),
             const SizedBox(height: 18),
             FilledButton.icon(
-              onPressed: onCopyAddress,
-              icon: const Icon(Icons.near_me_outlined),
-              label: const Text('Copiar endereço para chegar'),
+              onPressed: onDirections,
+              icon: const Icon(Icons.directions_outlined),
+              label: const Text('Como chegar'),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(56),
                 backgroundColor: AppTheme.primary,

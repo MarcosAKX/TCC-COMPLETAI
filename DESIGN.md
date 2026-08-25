@@ -156,6 +156,7 @@ Aberto/fechado com ícone + texto + cor.
 ### Perfil público
 
 - nome/status → preços (menor destacado) → frescor → serviços → avaliações;
+- “Como chegar” abre a rota em aplicativo externo usando a localização atual gerenciada pelo serviço de mapas;
 - botões secundários com contorno visível sobre fundo claro;
 - denúncia em papel de erro.
 
