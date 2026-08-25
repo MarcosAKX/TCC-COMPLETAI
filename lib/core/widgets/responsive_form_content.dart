@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'responsive_content.dart';
+
 class ResponsiveFormContent extends StatelessWidget {
   final Widget child;
   final double maxWidth;
@@ -18,9 +20,10 @@ class ResponsiveFormContent extends StatelessWidget {
       child: ConstrainedBox(
         key: const Key('responsive-form-frame'),
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: SizedBox(
-          width: double.infinity,
-          child: Padding(padding: padding, child: child),
+        child: ResponsiveContent(
+          maxWidth: maxWidth,
+          padding: padding,
+          child: child,
         ),
       ),
     );

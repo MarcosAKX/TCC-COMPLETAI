@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/fuel_price_grid.dart';
@@ -27,93 +28,168 @@ class DiscoveryStationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppTheme.card,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppTheme.outline),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (isBestValue)
-                const ColoredBox(
+    final freshness = _stationFreshness(station.updatedAt, DateTime.now());
+    final rating = _stationRating(station);
+
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: Material(
+        color: AppTheme.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(isBestValue ? 18 : 16, 14, 14, 13),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isBestValue) ...[
+                    ExcludeSemantics(
+                      child: _DecisionHeader(
+                        fuel: fuel,
+                        savingsPerLiter: savingsPerLiter,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Semantics(
+                    identifier: 'station-card-identity',
+                    sortKey: OrdinalSortKey(1),
+                    container: true,
+                    excludeSemantics: true,
+                    label:
+                        '${station.name}. ${isOpen ? 'Posto aberto' : 'Posto fechado'}',
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StationLogo(stationName: station.name, size: 46),
+                        const SizedBox(width: 11),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text(
+                                    station.name,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                  ),
+                                  StatusPill(isOpen: isOpen, compact: true),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                station.neighborhood.isEmpty
+                                    ? station.city
+                                    : station.neighborhood,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Semantics(
+                    identifier: 'station-card-prices',
+                    sortKey: OrdinalSortKey(2),
+                    container: true,
+                    excludeSemantics: true,
+                    label: _priceSemanticsLabel(),
+                    child: FuelPriceGrid(
+                      prices: station.fuelPrices,
+                      selectedFuel: fuel,
+                      bestValueKeys: isBestValue ? {fuel.fuelKey} : const {},
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Semantics(
+                    identifier: 'station-card-confidence',
+                    sortKey: OrdinalSortKey(3),
+                    container: true,
+                    excludeSemantics: true,
+                    label: [rating, freshness].whereType<String>().join('. '),
+                    child: _StationTrustLine(
+                      rating: rating,
+                      freshness: freshness,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isBestValue)
+              const Positioned(
+                top: 0,
+                bottom: 0,
+                left: 0,
+                child: ColoredBox(
                   key: Key('station-card-accent'),
                   color: AppTheme.primary,
                   child: SizedBox(width: 4),
                 ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    isBestValue ? 14 : 16,
-                    14,
-                    14,
-                    13,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (isBestValue) ...[
-                        _DecisionHeader(
-                          fuel: fuel,
-                          savingsPerLiter: savingsPerLiter,
-                        ),
-                        const SizedBox(height: 14),
-                      ],
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          StationLogo(stationName: station.name, size: 46),
-                          const SizedBox(width: 11),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  station.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  station.neighborhood.isEmpty
-                                      ? station.city
-                                      : station.neighborhood,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.labelSmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          StatusPill(isOpen: isOpen, compact: true),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      FuelPriceGrid(
-                        prices: station.fuelPrices,
-                        selectedFuel: fuel,
-                        bestValueKeys: isBestValue ? {fuel.fuelKey} : const {},
-                      ),
-                      const SizedBox(height: 10),
-                      _StationTrustLine(station: station),
-                    ],
-                  ),
-                ),
               ),
-            ],
-          ),
+            Positioned.fill(
+              child: Semantics(
+                identifier: 'station-card-action',
+                sortKey: OrdinalSortKey(4),
+                container: true,
+                excludeSemantics: true,
+                button: true,
+                label: 'Abrir perfil do posto',
+                onTap: onOpen,
+                child: InkWell(excludeFromSemantics: true, onTap: onOpen),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  String _priceSemanticsLabel() {
+    const fuels = <(String, String)>[
+      ('gasolineRegular', 'Gasolina'),
+      ('ethanol', 'Etanol'),
+      ('dieselS10', 'Diesel S10'),
+    ];
+    final announcements = <String>[];
+    if (isBestValue) {
+      announcements.add('Menor preço de ${fuel.label}');
+      final savings = savingsPerLiter;
+      if (savings != null) {
+        announcements.add(
+          'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
+        );
+      }
+    }
+    announcements.addAll(
+      fuels.map((entry) {
+        final value = station.fuelPrices[entry.$1];
+        final formatted = value == null || value <= 0
+            ? 'Não informado'
+            : 'R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}';
+        final details = <String>[entry.$2, formatted];
+        if (fuel.fuelKey == entry.$1) details.add('combustível selecionado');
+        if (isBestValue && fuel.fuelKey == entry.$1) {
+          details.add('melhor valor');
+        }
+        return details.join(', ');
+      }),
+    );
+    return announcements.join('. ');
   }
 }
 
@@ -131,74 +207,87 @@ class _DecisionHeader extends StatelessWidget {
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: AppTheme.outline)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
+      child: LayoutBuilder(
+        builder: (context, constraints) => Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
               'Menor preço de ${fuel.label}',
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-          if (savings != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppTheme.savingsSurface,
-                borderRadius: BorderRadius.circular(99),
-              ),
-              child: Text(
-                'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: AppTheme.savings,
-                  fontWeight: FontWeight.w700,
+            if (savings != null)
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.savingsSurface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'R\$ ${savings.toStringAsFixed(2).replaceAll('.', ',')}/L abaixo do próximo preço',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.savings,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
 
 class _StationTrustLine extends StatelessWidget {
-  final PublicGasStation station;
+  final String rating;
+  final String? freshness;
 
-  const _StationTrustLine({required this.station});
+  const _StationTrustLine({required this.rating, required this.freshness});
 
   @override
   Widget build(BuildContext context) {
-    final rating = station.reviewCount == 0
-        ? 'Sem avaliações'
-        : '${station.averageRating.toStringAsFixed(1)} · ${station.reviewCount} avaliações';
-    final freshness = _freshness(station.updatedAt, DateTime.now());
-    return Wrap(
-      spacing: 12,
-      runSpacing: 7,
-      children: [
-        _MetaItem(icon: Icons.star_rounded, text: rating, rating: true),
-        if (freshness != null)
-          _MetaItem(icon: Icons.schedule_rounded, text: freshness),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) => Wrap(
+        spacing: 12,
+        runSpacing: 7,
+        children: [
+          _MetaItem(icon: Icons.star_rounded, text: rating, rating: true),
+          if (freshness != null)
+            _MetaItem(icon: Icons.schedule_rounded, text: freshness!),
+        ],
+      ),
     );
   }
+}
 
-  String? _freshness(DateTime? updatedAt, DateTime now) {
-    if (updatedAt == null) return null;
-    final difference = now.difference(updatedAt);
-    if (difference.isNegative || difference.inMinutes < 1) {
-      return 'Atualizado agora';
-    }
-    if (difference.inMinutes < 60) {
-      return 'Atualizado há ${difference.inMinutes} min';
-    }
-    if (difference.inHours < 24) {
-      return 'Atualizado há ${difference.inHours} h';
-    }
-    return 'Atualizado há ${difference.inDays} d';
+String _stationRating(PublicGasStation station) => station.reviewCount == 0
+    ? 'Sem avaliações'
+    : '${station.averageRating.toStringAsFixed(1)} · ${station.reviewCount} avaliações';
+
+String? _stationFreshness(DateTime? updatedAt, DateTime now) {
+  if (updatedAt == null) return null;
+  final difference = now.difference(updatedAt);
+  if (difference.isNegative || difference.inMinutes < 1) {
+    return 'Atualizado agora';
   }
+  if (difference.inMinutes < 60) {
+    return 'Atualizado há ${difference.inMinutes} min';
+  }
+  if (difference.inHours < 24) {
+    return 'Atualizado há ${difference.inHours} h';
+  }
+  return 'Atualizado há ${difference.inDays} d';
 }
 
 class _MetaItem extends StatelessWidget {
@@ -223,7 +312,9 @@ class _MetaItem extends StatelessWidget {
           color: rating ? AppTheme.rating : AppTheme.textMuted,
         ),
         const SizedBox(width: 4),
-        Text(text, style: Theme.of(context).textTheme.labelSmall),
+        Flexible(
+          child: Text(text, style: Theme.of(context).textTheme.labelSmall),
+        ),
       ],
     );
   }

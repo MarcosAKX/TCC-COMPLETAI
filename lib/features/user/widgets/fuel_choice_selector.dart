@@ -34,7 +34,7 @@ class FuelChoiceSelector extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Container(
-                height: 60,
+                constraints: const BoxConstraints(minHeight: 60),
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
@@ -102,48 +102,62 @@ class _FuelOption extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(13),
-          child: AnimatedContainer(
-            key: Key('fuel-option-${fuel.name}'),
-            duration: const Duration(milliseconds: 170),
-            curve: Curves.easeOut,
-            constraints: const BoxConstraints(minHeight: 52),
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            decoration: BoxDecoration(
-              color: selected ? Colors.white : Colors.transparent,
-              borderRadius: BorderRadius.circular(13),
-              boxShadow: selected
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x26203C92),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final useCompactComposition =
+                  MediaQuery.textScalerOf(context).scale(14) > 18 ||
+                  constraints.maxWidth < 88;
+              final foreground = selected ? AppTheme.primary : Colors.white;
+              final icon = Icon(
+                Icons.local_gas_station_outlined,
+                size: 19,
+                color: foreground,
+              );
+              final label = Text(
+                fuel.label,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+
+              return AnimatedContainer(
+                key: Key('fuel-option-${fuel.name}'),
+                duration: const Duration(milliseconds: 170),
+                curve: Curves.easeOut,
+                constraints: const BoxConstraints(minHeight: 52),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(13),
+                  boxShadow: selected
+                      ? const [
+                          BoxShadow(
+                            color: Color(0x26203C92),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
+                          ),
+                        ]
+                      : const [],
+                ),
+                child: useCompactComposition
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [icon, const SizedBox(height: 4), label],
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          icon,
+                          const SizedBox(width: 7),
+                          Flexible(child: label),
+                        ],
                       ),
-                    ]
-                  : const [],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.local_gas_station_outlined,
-                  size: 19,
-                  color: selected ? AppTheme.primary : Colors.white,
-                ),
-                const SizedBox(width: 7),
-                Flexible(
-                  child: Text(
-                    fuel.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: selected ? AppTheme.primary : Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),

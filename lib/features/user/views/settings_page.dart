@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/responsive_content.dart';
 import '../../../core/widgets/settings_tile.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -278,76 +279,79 @@ class SettingsPage extends StatelessWidget {
         backgroundColor: AppTheme.background,
         elevation: 0,
         centerTitle: true,
-        title: const Text(
+        title: Text(
           'Configurações',
-          style: TextStyle(
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
             color: AppTheme.textLight,
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Minha conta',
-                style: TextStyle(
-                  color: AppTheme.textLight,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+      body: ResponsiveContent(
+        maxWidth: 720,
+        padding: const EdgeInsets.all(24),
+        scrollable: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Minha conta',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.textLight,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildOptionTile(
+              icon: Icons.person_outline,
+              title: 'Editar perfil',
+              onTap: () {
+                _goToProfile(context);
+              },
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'Sessão',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppTheme.textLight,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildOptionTile(
+              icon: Icons.logout,
+              title: 'Sair da conta',
+              iconColor: AppTheme.error,
+              textColor: AppTheme.error,
+              onTap: () {
+                _logout(context);
+              },
+            ),
+            const SizedBox(height: 32),
+            Column(
+              key: const Key('settings-danger-zone'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Zona de perigo',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.error,
+                    fontSize: 20,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionTile(
-                icon: Icons.person_outline,
-                title: 'Editar perfil',
-                onTap: () {
-                  _goToProfile(context);
-                },
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Sessão',
-                style: TextStyle(
-                  color: AppTheme.textLight,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+                _buildOptionTile(
+                  icon: Icons.delete_outline,
+                  title: 'Excluir conta',
+                  iconColor: AppTheme.error,
+                  textColor: AppTheme.error,
+                  onTap: () {
+                    _deleteAccount(context);
+                  },
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionTile(
-                icon: Icons.logout,
-                title: 'Sair da conta',
-                iconColor: AppTheme.error,
-                textColor: AppTheme.error,
-                onTap: () {
-                  _logout(context);
-                },
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Zona de perigo',
-                style: TextStyle(
-                  color: AppTheme.error,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildOptionTile(
-                icon: Icons.delete_outline,
-                title: 'Excluir conta',
-                iconColor: AppTheme.error,
-                textColor: AppTheme.error,
-                onTap: () {
-                  _deleteAccount(context);
-                },
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );

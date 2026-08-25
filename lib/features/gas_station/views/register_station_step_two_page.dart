@@ -5,8 +5,8 @@ import '../../../../app/app_routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/custom_button.dart';
 import '../../../../core/widgets/custom_text_field.dart';
+import '../../../../core/widgets/responsive_content.dart';
 import '../../../../core/widgets/step_progress_header.dart';
-import '../../../../core/widgets/responsive_form_content.dart';
 import '../models/gas_station_model.dart';
 import '../viewmodels/register_station_viewmodel.dart';
 
@@ -165,75 +165,77 @@ class _RegisterStationStepTwoPageState
 
       appBar: AppBar(title: const Text('Endereço do Posto')),
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: ResponsiveFormContent(
-            child: Column(
-              children: [
-                const StepProgressHeader(currentStep: 2, totalSteps: 2),
-                const SizedBox(height: 28),
-                const Icon(
-                  Icons.location_on_outlined,
-                  size: 52,
-                  color: AppTheme.primary,
-                ),
-
-                const SizedBox(height: 16),
-
-                const Text(
-                  'Localização',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textLight,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  'Informe o endereço do posto.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.textMuted),
-                ),
-
-                const SizedBox(height: 32),
-
-                CustomTextField(
-                  label: 'Endereço',
-                  hint: 'Ex: Avenida Brasil, 1000',
-                  icon: Icons.map_outlined,
-                  controller: _addressController,
-                ),
-
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  label: 'Bairro',
-                  hint: 'Ex: Centro',
-                  icon: Icons.location_city_outlined,
-                  controller: _neighborhoodController,
-                ),
-
-                const SizedBox(height: 16),
-
-                CustomTextField(
-                  label: 'Cidade',
-                  hint: 'Ex: Bebedouro',
-                  icon: Icons.place_outlined,
-                  controller: _cityController,
-                ),
-
-                const SizedBox(height: 28),
-
-                CustomButton(
-                  text: 'Finalizar Cadastro',
-                  isLoading: _isLoading,
-                  onPressed: _finishRegister,
-                ),
-              ],
+      body: ResponsiveContent(
+        maxWidth: 440,
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+        scrollable: true,
+        child: Column(
+          children: [
+            const StepProgressHeader(currentStep: 2, totalSteps: 2),
+            const SizedBox(height: 28),
+            const Icon(
+              Icons.location_on_outlined,
+              size: 52,
+              color: AppTheme.primary,
             ),
-          ),
+
+            const SizedBox(height: 16),
+
+            Text(
+              'Localização',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textLight,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            Text(
+              'Informe o endereço do posto.',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+            ),
+
+            const SizedBox(height: 32),
+
+            CustomTextField(
+              label: 'Endereço',
+              hint: 'Ex: Avenida Brasil, 1000',
+              icon: Icons.map_outlined,
+              controller: _addressController,
+            ),
+
+            const SizedBox(height: 16),
+
+            CustomTextField(
+              label: 'Bairro',
+              hint: 'Ex: Centro',
+              icon: Icons.location_city_outlined,
+              controller: _neighborhoodController,
+            ),
+
+            const SizedBox(height: 16),
+
+            CustomTextField(
+              label: 'Cidade',
+              hint: 'Ex: Bebedouro',
+              icon: Icons.place_outlined,
+              controller: _cityController,
+            ),
+
+            const SizedBox(height: 28),
+
+            CustomButton(
+              key: const Key('auth-primary-action'),
+              text: 'Finalizar Cadastro',
+              isLoading: _isLoading,
+              onPressed: _finishRegister,
+            ),
+          ],
         ),
       ),
     );

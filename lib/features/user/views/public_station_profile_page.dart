@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/adaptive_action_row.dart';
 import '../../../core/widgets/fuel_price_grid.dart';
 import '../../../core/widgets/price_display.dart';
+import '../../../core/widgets/responsive_content.dart';
 import '../../../core/widgets/section_card.dart';
 import '../../../core/widgets/station_logo.dart';
 import '../../../core/widgets/status_pill.dart';
@@ -64,82 +66,10 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
   }
 
   Future<void> _openReviewDialog() async {
-    final commentController = TextEditingController();
-    int rating = 5;
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: AppTheme.card,
-            title: const Text('Avaliar este posto'),
-            content: SizedBox(
-              width: 420,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Sua avaliação ajuda outros motoristas.',
-                    style: TextStyle(color: AppTheme.textMuted),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        tooltip: '${index + 1} estrelas',
-                        onPressed: () =>
-                            setDialogState(() => rating = index + 1),
-                        icon: Icon(
-                          index < rating
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          color: AppTheme.rating,
-                          size: 32,
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: commentController,
-                    minLines: 3,
-                    maxLines: 5,
-                    maxLength: 500,
-                    decoration: const InputDecoration(
-                      labelText: 'Conte como foi sua experiência',
-                      alignLabelWithHint: true,
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  final comment = commentController.text.trim();
-                  if (comment.length < 3) {
-                    _showMessage('Escreva pelo menos 3 caracteres.');
-                    return;
-                  }
-                  Navigator.pop(dialogContext, {
-                    'rating': rating,
-                    'comment': comment,
-                  });
-                },
-                child: const Text('Publicar'),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (_) => const StationReviewDialog(),
     );
-    commentController.dispose();
     if (result == null) return;
 
     try {
@@ -159,78 +89,10 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
   }
 
   Future<void> _openStationReportDialog() async {
-    const reasons = [
-      'Suspeita de combustível adulterado',
-      'Preço diferente do anunciado',
-      'Informações incorretas',
-      'Posto inexistente ou fechado',
-      'Outro',
-    ];
-    String reason = reasons.first;
-    final detailsController = TextEditingController();
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: AppTheme.card,
-            title: const Text('Reportar este posto'),
-            content: SizedBox(
-              width: 420,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: reason,
-                    decoration: const InputDecoration(
-                      labelText: 'Motivo',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: reasons
-                        .map(
-                          (item) =>
-                              DropdownMenuItem(value: item, child: Text(item)),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => reason = value);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: detailsController,
-                    minLines: 3,
-                    maxLines: 5,
-                    maxLength: 500,
-                    decoration: const InputDecoration(
-                      labelText: 'Detalhes adicionais (opcional)',
-                      alignLabelWithHint: true,
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton.tonal(
-                onPressed: () => Navigator.pop(dialogContext, {
-                  'reason': reason,
-                  'details': detailsController.text.trim(),
-                }),
-                child: const Text('Enviar reporte'),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (_) => const StationReportDialog(),
     );
-    detailsController.dispose();
     if (result == null) return;
 
     try {
@@ -248,40 +110,11 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
   }
 
   Future<void> _reportReview(StationReview review) async {
-    const reasons = [
-      'Conteúdo ofensivo',
-      'Palavrões ou baixo calão',
-      'Discurso de ódio',
-      'Spam ou conteúdo falso',
-      'Outro',
-    ];
     final reason = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: AppTheme.card,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Por que deseja denunciar?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 12),
-              ...reasons.map(
-                (item) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(item),
-                  trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => Navigator.pop(context, item),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      isScrollControlled: true,
+      builder: (_) => const ReviewReportSheet(),
     );
     if (reason == null) return;
 
@@ -302,47 +135,8 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
       context: context,
       backgroundColor: AppTheme.background,
       isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.82,
-        minChildSize: 0.55,
-        maxChildSize: 0.94,
-        builder: (context, controller) => Column(
-          children: [
-            Container(
-              width: 42,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.outline,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 4, 20, 14),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Todas as avaliações',
-                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView.separated(
-                controller: controller,
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-                itemCount: _reviews.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (_, index) => _ReviewCard(
-                  review: _reviews[index],
-                  onReport: () => _reportReview(_reviews[index]),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) =>
+          AllReviewsSheet(reviews: _reviews, onReport: _reportReview),
     );
   }
 
@@ -382,160 +176,67 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
           final station = _station;
           if (station == null) return _ProfileError(onRetry: _reload);
 
-          return RefreshIndicator(
-            color: AppTheme.primaryInteractive,
+          return PublicStationProfileContent(
+            station: station,
+            reviews: _reviews,
+            favoriteStream: _service.watchIsFavorite(station.id),
             onRefresh: _reload,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 760),
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-                  children: [
-                    _StationHeader(station: station),
-                    const SizedBox(height: 22),
-                    _PricesCard(station: station),
-                    const SizedBox(height: 25),
-                    _SectionTitle(title: 'Serviços disponíveis'),
-                    const SizedBox(height: 11),
-                    if ({...station.services, ...station.tags}.isEmpty)
-                      const Text(
-                        'Nenhum serviço informado.',
-                        style: TextStyle(color: AppTheme.textMuted),
-                      )
-                    else
-                      Wrap(
-                        spacing: 9,
-                        runSpacing: 9,
-                        children: {
-                          ...station.services,
-                          ...station.tags,
-                        }.map((item) => _ServiceChip(label: item)).toList(),
-                      ),
-                    const SizedBox(height: 25),
-                    _InformationCard(station: station),
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: () async {
-                        await Clipboard.setData(
-                          ClipboardData(text: station.fullAddress),
-                        );
-                        if (context.mounted) {
-                          _showMessage(
-                            'Endereço copiado. Abra no seu aplicativo de mapas.',
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.near_me_outlined),
-                      label: const Text('Copiar endereço para chegar'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size.fromHeight(56),
-                        backgroundColor: AppTheme.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _openReviewDialog,
-                            icon: const Icon(
-                              Icons.star_rounded,
-                              color: AppTheme.rating,
-                            ),
-                            label: const Text('Avaliar'),
-                            style: _secondaryButtonStyle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: StreamBuilder<bool>(
-                            stream: _service.watchIsFavorite(station.id),
-                            initialData: false,
-                            builder: (context, favoriteSnapshot) {
-                              final favorite = favoriteSnapshot.data ?? false;
-                              return OutlinedButton.icon(
-                                onPressed: () async {
-                                  try {
-                                    await _service.setFavorite(
-                                      stationId: station.id,
-                                      favorite: !favorite,
-                                    );
-                                  } catch (_) {
-                                    if (context.mounted) {
-                                      _showMessage(
-                                        'Não foi possível alterar o favorito.',
-                                      );
-                                    }
-                                  }
-                                },
-                                icon: Icon(
-                                  favorite
-                                      ? Icons.favorite_rounded
-                                      : Icons.favorite_border_rounded,
-                                  color: AppTheme.error,
-                                ),
-                                label: Text(
-                                  favorite ? 'Favoritado' : 'Favoritar',
-                                ),
-                                style: _secondaryButtonStyle,
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: _SectionTitle(
-                            title: 'O que dizem os motoristas',
-                          ),
-                        ),
-                        if (_reviews.length > 3)
-                          TextButton(
-                            onPressed: _showAllReviews,
-                            child: const Text('Ver todas'),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    if (_reviews.isEmpty)
-                      const _NoReviews()
-                    else
-                      ..._reviews
-                          .take(3)
-                          .map(
-                            (review) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _ReviewCard(
-                                review: review,
-                                onReport: () => _reportReview(review),
-                              ),
-                            ),
-                          ),
-                    const SizedBox(height: 6),
-                    TextButton.icon(
-                      onPressed: _openStationReportDialog,
-                      icon: const Icon(Icons.flag_outlined, size: 18),
-                      label: const Text('Reportar problema com este posto'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppTheme.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            onCopyAddress: () async {
+              await Clipboard.setData(ClipboardData(text: station.fullAddress));
+              if (mounted) {
+                _showMessage(
+                  'Endereço copiado. Abra no seu aplicativo de mapas.',
+                );
+              }
+            },
+            onReview: _openReviewDialog,
+            onToggleFavorite: (favorite) async {
+              try {
+                await _service.setFavorite(
+                  stationId: station.id,
+                  favorite: favorite,
+                );
+              } catch (_) {
+                if (mounted) {
+                  _showMessage('Não foi possível alterar o favorito.');
+                }
+              }
+            },
+            onShowAllReviews: _showAllReviews,
+            onReportReview: _reportReview,
+            onReportStation: _openStationReportDialog,
           );
         },
       ),
     );
   }
+}
+
+class PublicStationProfileContent extends StatelessWidget {
+  const PublicStationProfileContent({
+    super.key,
+    required this.station,
+    required this.reviews,
+    required this.favoriteStream,
+    required this.onRefresh,
+    required this.onCopyAddress,
+    required this.onReview,
+    required this.onToggleFavorite,
+    required this.onShowAllReviews,
+    required this.onReportReview,
+    required this.onReportStation,
+  });
+
+  final PublicGasStation station;
+  final List<StationReview> reviews;
+  final Stream<bool> favoriteStream;
+  final Future<void> Function() onRefresh;
+  final VoidCallback onCopyAddress;
+  final VoidCallback onReview;
+  final Future<void> Function(bool favorite) onToggleFavorite;
+  final VoidCallback onShowAllReviews;
+  final void Function(StationReview review) onReportReview;
+  final VoidCallback onReportStation;
 
   ButtonStyle get _secondaryButtonStyle => OutlinedButton.styleFrom(
     minimumSize: const Size.fromHeight(52),
@@ -543,6 +244,474 @@ class _PublicStationProfilePageState extends State<PublicStationProfilePage> {
     side: const BorderSide(color: AppTheme.outline),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
   );
+
+  @override
+  Widget build(BuildContext context) {
+    final services = {...station.services, ...station.tags};
+    return RefreshIndicator(
+      color: AppTheme.primaryInteractive,
+      onRefresh: onRefresh,
+      child: ResponsiveContent(
+        maxWidth: 760,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
+        scrollable: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StationHeader(station: station),
+            const SizedBox(height: 22),
+            _PricesCard(station: station),
+            const SizedBox(height: 25),
+            const _SectionTitle(title: 'Serviços disponíveis'),
+            const SizedBox(height: 11),
+            if (services.isEmpty)
+              Text(
+                'Nenhum serviço informado.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+              )
+            else
+              Wrap(
+                spacing: 9,
+                runSpacing: 9,
+                children: services
+                    .map((item) => _ServiceChip(label: item))
+                    .toList(),
+              ),
+            const SizedBox(height: 25),
+            _InformationCard(station: station),
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: onCopyAddress,
+              icon: const Icon(Icons.near_me_outlined),
+              label: const Text('Copiar endereço para chegar'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                backgroundColor: AppTheme.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 520;
+                final actionWidth = compact
+                    ? double.infinity
+                    : (constraints.maxWidth - 12) / 2;
+                return AdaptiveActionRow(
+                  breakpoint: 520,
+                  children: [
+                    SizedBox(
+                      width: actionWidth,
+                      child: OutlinedButton.icon(
+                        onPressed: onReview,
+                        icon: const Icon(
+                          Icons.star_rounded,
+                          color: AppTheme.rating,
+                        ),
+                        label: const Text('Avaliar'),
+                        style: _secondaryButtonStyle,
+                      ),
+                    ),
+                    SizedBox(
+                      width: actionWidth,
+                      child: StreamBuilder<bool>(
+                        stream: favoriteStream,
+                        initialData: false,
+                        builder: (context, snapshot) {
+                          final favorite = snapshot.data ?? false;
+                          return OutlinedButton.icon(
+                            onPressed: () => onToggleFavorite(!favorite),
+                            icon: Icon(
+                              favorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: AppTheme.error,
+                            ),
+                            label: Text(favorite ? 'Favoritado' : 'Favoritar'),
+                            style: _secondaryButtonStyle,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 30),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                const _SectionTitle(title: 'O que dizem os motoristas'),
+                if (reviews.length > 3)
+                  TextButton(
+                    onPressed: onShowAllReviews,
+                    child: const Text('Ver todas'),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (reviews.isEmpty)
+              const _NoReviews()
+            else
+              ...reviews
+                  .take(3)
+                  .map(
+                    (review) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _ReviewCard(
+                        review: review,
+                        onReport: () => onReportReview(review),
+                      ),
+                    ),
+                  ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                key: const Key('public-profile-report-station-action'),
+                onPressed: onReportStation,
+                icon: const Icon(Icons.flag_outlined, size: 18),
+                label: const Text('Reportar problema com este posto'),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StationReviewDialog extends StatefulWidget {
+  const StationReviewDialog({super.key});
+
+  @override
+  State<StationReviewDialog> createState() => _StationReviewDialogState();
+}
+
+class _StationReviewDialogState extends State<StationReviewDialog> {
+  final TextEditingController _commentController = TextEditingController();
+  int _rating = 5;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.card,
+      title: Text(
+        'Avaliar este posto',
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      content: SizedBox(
+        width: 420,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.52,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Sua avaliação ajuda outros motoristas.',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      tooltip: '${index + 1} estrelas',
+                      onPressed: () => setState(() => _rating = index + 1),
+                      icon: Icon(
+                        index < _rating
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        color: AppTheme.rating,
+                        size: 32,
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _commentController,
+                  minLines: 3,
+                  maxLines: 5,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Conte como foi sua experiência',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: AdaptiveActionRow(
+            breakpoint: 360,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  final comment = _commentController.text.trim();
+                  if (comment.length < 3) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Escreva pelo menos 3 caracteres.'),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.pop(context, {
+                    'rating': _rating,
+                    'comment': comment,
+                  });
+                },
+                child: const Text('Publicar'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class StationReportDialog extends StatefulWidget {
+  const StationReportDialog({super.key});
+
+  @override
+  State<StationReportDialog> createState() => _StationReportDialogState();
+}
+
+class _StationReportDialogState extends State<StationReportDialog> {
+  static const _reasons = [
+    'Suspeita de combustível adulterado',
+    'Preço diferente do anunciado',
+    'Informações incorretas',
+    'Posto inexistente ou fechado',
+    'Outro',
+  ];
+
+  final TextEditingController _detailsController = TextEditingController();
+  String _reason = _reasons.first;
+
+  @override
+  void dispose() {
+    _detailsController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppTheme.card,
+      title: Text(
+        'Reportar este posto',
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      content: SizedBox(
+        width: 420,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.52,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: _reason,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _reasons
+                      .map(
+                        (item) => DropdownMenuItem(
+                          value: item,
+                          child: Text(item, overflow: TextOverflow.ellipsis),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) setState(() => _reason = value);
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _detailsController,
+                  minLines: 3,
+                  maxLines: 5,
+                  maxLength: 500,
+                  decoration: const InputDecoration(
+                    labelText: 'Detalhes adicionais (opcional)',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: AdaptiveActionRow(
+            breakpoint: 360,
+            children: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton.tonal(
+                onPressed: () => Navigator.pop(context, {
+                  'reason': _reason,
+                  'details': _detailsController.text.trim(),
+                }),
+                child: const Text('Enviar reporte'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ReviewReportSheet extends StatelessWidget {
+  const ReviewReportSheet({super.key});
+
+  static const _reasons = [
+    'Conteúdo ofensivo',
+    'Palavrões ou baixo calão',
+    'Discurso de ódio',
+    'Spam ou conteúdo falso',
+    'Outro',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: FractionallySizedBox(
+        heightFactor: 0.82,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Por que deseja denunciar?',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView(
+                  children: _reasons
+                      .map(
+                        (item) => ListTile(
+                          minTileHeight: 48,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(item),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => Navigator.pop(context, item),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AllReviewsSheet extends StatelessWidget {
+  const AllReviewsSheet({
+    super.key,
+    required this.reviews,
+    required this.onReport,
+  });
+
+  final List<StationReview> reviews;
+  final void Function(StationReview review) onReport;
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.82,
+      minChildSize: 0.55,
+      maxChildSize: 0.94,
+      builder: (context, controller) => Column(
+        children: [
+          Container(
+            width: 42,
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.outline,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Todas as avaliações',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              controller: controller,
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+              itemCount: reviews.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (_, index) => _ReviewCard(
+                review: reviews[index],
+                onReport: () => onReport(reviews[index]),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _StationHeader extends StatelessWidget {
@@ -566,8 +735,6 @@ class _StationHeader extends StatelessWidget {
                 children: [
                   Text(
                     station.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 6),
@@ -578,10 +745,10 @@ class _StationHeader extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            StatusPill(isOpen: station.isOpenAt(DateTime.now()), compact: true),
           ],
         ),
+        const SizedBox(height: 12),
+        StatusPill(isOpen: station.isOpenAt(DateTime.now()), compact: true),
         const SizedBox(height: 13),
         Wrap(
           spacing: 12,
@@ -638,19 +805,14 @@ class _PricesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Todos os preços',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              Text(
-                updatedText(station.updatedAt),
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ],
+          Text(
+            'Todos os preços',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            updatedText(station.updatedAt),
+            style: Theme.of(context).textTheme.labelSmall,
           ),
           const SizedBox(height: 14),
           FuelPriceGrid(prices: station.fuelPrices),
@@ -746,17 +908,20 @@ class _InformationCard extends StatelessWidget {
                     : 'Fechado';
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Row(
+                  child: Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    spacing: 12,
+                    runSpacing: 2,
                     children: [
-                      Expanded(
-                        child: Text(
-                          entry.value,
-                          style: const TextStyle(color: AppTheme.textMuted),
+                      Text(
+                        entry.value,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textMuted,
                         ),
                       ),
                       Text(
                         value,
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: enabled ? AppTheme.textLight : AppTheme.error,
                           fontWeight: FontWeight.w600,
                         ),
@@ -935,7 +1100,6 @@ class _ReviewCard extends StatelessWidget {
                   ],
                 ),
               ),
-              _Stars(rating: review.rating),
               IconButton(
                 tooltip: 'Denunciar avaliação',
                 onPressed: onReport,
@@ -947,6 +1111,8 @@ class _ReviewCard extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          _Stars(rating: review.rating),
           if (review.comment.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(

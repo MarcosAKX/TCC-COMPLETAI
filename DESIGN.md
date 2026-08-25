@@ -184,6 +184,19 @@ Aberto/fechado com ícone + texto + cor.
 - Semantics em preço, status, progresso e destaques de decisão;
 - revisão em fonte ampliada e Android real.
 
+## Adaptive layout contract
+
+- Escopo validado: celulares Android compactos entre 320 e 600 dp de largura, em retrato e paisagem, com escala de texto do sistema até 2,0× e teclado virtual.
+- Cenários automatizados mínimos: 320×568 dp a 1,0×; 360×800 dp a 2,0×; e 640×360 dp a 1,3× para paisagem compacta.
+- `ResponsiveContent` centraliza `SafeArea`, margens fluidas, largura máxima e, quando solicitado, rolagem com insets de sistema e teclado.
+- `AdaptiveLayout` escolhe a composição pelo espaço real do conteúdo. O breakpoint pertence ao componente consumidor, não ao modelo do aparelho.
+- `AdaptiveActionRow` mantém ações lado a lado somente quando elas cabem; caso contrário, preserva ordem semântica e as reorganiza verticalmente.
+- Reflow é orientado pelo conteúdo: texto variável pode crescer, e cabeçalhos, status, horários, filtros e ações usam `Flexible`, `Wrap` ou coluna antes de comprimir ou ocultar informação essencial.
+- O dashboard usa navegação inferior abaixo de 840 dp e `NavigationRail` a partir de 840 dp. Esse breakpoint organiza a navegação administrativa; não amplia o escopo para tablets e foldables.
+- Conteúdo e ações essenciais permanecem alcançáveis por scroll, inclusive com IME aberto, e controles avaliados mantêm alvo mínimo de 48×48 dp.
+- A escala máxima coberta pela suíte automatizada é 2,0×. A aplicação não limita o `textScaler` do sistema.
+- A homologação por captura em Android real ou emulador requer retrato, paisagem e fonte 1,3×. Enquanto nenhum dispositivo estiver conectado, essa inspeção visual permanece pendente e a evidência automatizada não equivale à aprovação visual Android.
+
 ## Forbidden patterns
 
 - painel preto dominante, verde neon, ciano decorativo, glow, glassmorphism;

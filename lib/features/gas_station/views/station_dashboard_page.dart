@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/adaptive_layout.dart';
 import '../../../core/widgets/station_logo.dart';
 import '../../../core/widgets/status_pill.dart';
 import '../models/station_dashboard_draft.dart';
@@ -368,40 +369,20 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final expanded = constraints.maxWidth >= 840;
-        return PopScope(
-          canPop: !_hasCurrentSectionChanges,
-          onPopInvokedWithResult: (didPop, result) async {
-            if (didPop || !await _confirmDiscardCurrentSection()) return;
-            if (context.mounted) Navigator.of(context).pop(result);
-          },
-          child: Scaffold(
-            backgroundColor: AppTheme.background,
-            body: SafeArea(
-              child: Row(
-                children: [
-                  if (expanded) _buildNavigationRail(),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _buildHeader(),
-                        Expanded(
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : _buildCurrentSection(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            bottomNavigationBar: expanded ? null : _buildNavigationBar(),
-          ),
-        );
+    return PopScope(
+      canPop: !_hasCurrentSectionChanges,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || !await _confirmDiscardCurrentSection()) return;
+        if (context.mounted) Navigator.of(context).pop(result);
       },
+      child: DashboardAdaptiveShell(
+        selectedIndex: _selectedSection.index,
+        onDestinationSelected: _isSaving ? null : _selectSection,
+        header: _buildHeader(),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _buildCurrentSection(),
+      ),
     );
   }
 
@@ -423,65 +404,6 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
       _DashboardSection.hours => _buildHoursSection(),
       _DashboardSection.reviews => _buildReviewsTab(),
     };
-  }
-
-  Widget _buildNavigationBar() {
-    return NavigationBar(
-      selectedIndex: _selectedSection.index,
-      onDestinationSelected: _isSaving ? null : _selectSection,
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.local_gas_station_outlined),
-          selectedIcon: Icon(Icons.local_gas_station_rounded),
-          label: 'Preços',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.storefront_outlined),
-          selectedIcon: Icon(Icons.storefront_rounded),
-          label: 'Informações',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.schedule_outlined),
-          selectedIcon: Icon(Icons.schedule_rounded),
-          label: 'Horários',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.star_outline_rounded),
-          selectedIcon: Icon(Icons.star_rounded),
-          label: 'Avaliações',
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNavigationRail() {
-    return NavigationRail(
-      selectedIndex: _selectedSection.index,
-      onDestinationSelected: _isSaving ? null : _selectSection,
-      labelType: NavigationRailLabelType.all,
-      destinations: const [
-        NavigationRailDestination(
-          icon: Icon(Icons.local_gas_station_outlined),
-          selectedIcon: Icon(Icons.local_gas_station_rounded),
-          label: Text('Preços'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.storefront_outlined),
-          selectedIcon: Icon(Icons.storefront_rounded),
-          label: Text('Informações'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.schedule_outlined),
-          selectedIcon: Icon(Icons.schedule_rounded),
-          label: Text('Horários'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.star_outline_rounded),
-          selectedIcon: Icon(Icons.star_rounded),
-          label: Text('Avaliações'),
-        ),
-      ],
-    );
   }
 
   Future<void> _selectSection(int index) async {
@@ -543,68 +465,11 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: const BoxDecoration(
-        color: AppTheme.background,
-        border: Border(bottom: BorderSide(color: AppTheme.outline)),
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 980),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppTheme.elevatedSurface,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.outline),
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'C!',
-                  style: TextStyle(
-                    color: AppTheme.primary,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Completai!',
-                  style: TextStyle(
-                    color: AppTheme.textLight,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              StatusPill(isOpen: _isOpenNow),
-              const SizedBox(width: 8),
-              IconButton(
-                tooltip: 'Notificações',
-                onPressed: () => _showMessage('Você não possui notificações.'),
-                icon: const Icon(Icons.notifications_none_rounded),
-              ),
-              const SizedBox(width: 4),
-              Tooltip(
-                message: 'Editar perfil do posto',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () {
-                    Navigator.pushNamed(context, AppRoutes.stationProfile);
-                  },
-                  child: StationLogo(stationName: _stationName, size: 42),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return DashboardHeader(
+      stationName: _stationName,
+      isOpen: _isOpenNow,
+      onNotifications: () => _showMessage('Você não possui notificações.'),
+      onProfile: () => Navigator.pushNamed(context, AppRoutes.stationProfile),
     );
   }
 
@@ -867,25 +732,15 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                         ),
                 ),
                 const SizedBox(height: 14),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final fieldWidth = constraints.maxWidth >= 650
-                        ? (constraints.maxWidth - 14) / 2
-                        : constraints.maxWidth;
-                    return Wrap(
-                      spacing: 14,
-                      runSpacing: 14,
-                      children: _fuelLabels.entries.map((entry) {
-                        return SizedBox(
-                          width: fieldWidth,
-                          child: _FuelPriceField(
-                            label: entry.value,
-                            controller: _priceControllers[entry.key]!,
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  },
+                DashboardPriceFields(
+                  fields: _fuelLabels.entries
+                      .map(
+                        (entry) => _FuelPriceField(
+                          label: entry.value,
+                          controller: _priceControllers[entry.key]!,
+                        ),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -1066,87 +921,19 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _borderColor),
               ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final compact = constraints.maxWidth < 570;
-                  final dayControl = Row(
-                    children: [
-                      Switch.adaptive(
-                        value: enabled,
-                        activeTrackColor: AppTheme.primary,
-                        onChanged: (value) {
-                          setState(() {
-                            _openingHours[day] = {
-                              ...schedule,
-                              'enabled': value,
-                            };
-                            _draft?.replaceOpeningHours(_openingHours);
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          entry.value,
-                          style: const TextStyle(
-                            color: AppTheme.textLight,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-
-                  final hoursControl = enabled
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _TimeButton(
-                              label: schedule['open'] as String,
-                              onPressed: () => _selectTime(day, 'open'),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(
-                                'até',
-                                style: TextStyle(color: AppTheme.textMuted),
-                              ),
-                            ),
-                            _TimeButton(
-                              label: schedule['close'] as String,
-                              onPressed: () => _selectTime(day, 'close'),
-                            ),
-                          ],
-                        )
-                      : const Text(
-                          'Fechado',
-                          style: TextStyle(
-                            color: AppTheme.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-
-                  if (compact) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        dayControl,
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: hoursControl,
-                        ),
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    children: [
-                      Expanded(child: dayControl),
-                      hoursControl,
-                    ],
-                  );
+              child: DashboardOpeningHourRow(
+                dayLabel: entry.value,
+                enabled: enabled,
+                openLabel: schedule['open'] as String,
+                closeLabel: schedule['close'] as String,
+                onEnabledChanged: (value) {
+                  setState(() {
+                    _openingHours[day] = {...schedule, 'enabled': value};
+                    _draft?.replaceOpeningHours(_openingHours);
+                  });
                 },
+                onOpenPressed: () => _selectTime(day, 'open'),
+                onClosePressed: () => _selectTime(day, 'close'),
               ),
             ),
           );
@@ -1246,7 +1033,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                   ...reviews.map(
                     (review) => Padding(
                       padding: const EdgeInsets.only(bottom: 14),
-                      child: _ReviewCard(
+                      child: DashboardReviewCard(
                         review: review,
                         alreadyReported: reportedIds.contains(review.id),
                         onReport: () => _reportReview(review),
@@ -1353,6 +1140,310 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
       'saturday': {'enabled': true, 'open': '06:00', 'close': '20:00'},
       'sunday': {'enabled': false, 'open': '08:00', 'close': '18:00'},
     };
+  }
+}
+
+class DashboardAdaptiveShell extends StatelessWidget {
+  const DashboardAdaptiveShell({
+    super.key,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.header,
+    required this.body,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int>? onDestinationSelected;
+  final Widget header;
+  final Widget body;
+
+  static const _destinations = [
+    NavigationDestination(
+      icon: Icon(Icons.local_gas_station_outlined),
+      selectedIcon: Icon(Icons.local_gas_station_rounded),
+      label: 'Preços',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.storefront_outlined),
+      selectedIcon: Icon(Icons.storefront_rounded),
+      label: 'Informações',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.schedule_outlined),
+      selectedIcon: Icon(Icons.schedule_rounded),
+      label: 'Horários',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.star_outline_rounded),
+      selectedIcon: Icon(Icons.star_rounded),
+      label: 'Avaliações',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Column(
+      children: [
+        header,
+        Expanded(child: body),
+      ],
+    );
+    return AdaptiveLayout(
+      breakpoint: 840,
+      compact: Scaffold(
+        backgroundColor: AppTheme.background,
+        body: SafeArea(child: content),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+          destinations: _destinations,
+        ),
+      ),
+      expanded: Scaffold(
+        backgroundColor: AppTheme.background,
+        body: SafeArea(
+          child: Row(
+            children: [
+              NavigationRail(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: onDestinationSelected,
+                labelType: NavigationRailLabelType.all,
+                destinations: _destinations
+                    .map(
+                      (item) => NavigationRailDestination(
+                        icon: item.icon,
+                        selectedIcon: item.selectedIcon,
+                        label: Text(item.label),
+                      ),
+                    )
+                    .toList(),
+              ),
+              Expanded(child: content),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DashboardHeader extends StatelessWidget {
+  const DashboardHeader({
+    super.key,
+    required this.stationName,
+    required this.isOpen,
+    required this.onNotifications,
+    required this.onProfile,
+  });
+
+  final String stationName;
+  final bool isOpen;
+  final VoidCallback onNotifications;
+  final VoidCallback onProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final title = Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppTheme.elevatedSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.outline),
+          ),
+          alignment: Alignment.center,
+          child: const Text(
+            'C!',
+            style: TextStyle(
+              color: AppTheme.primary,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Completai!',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ),
+      ],
+    );
+    final actions = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: [
+        StatusPill(isOpen: isOpen, compact: textScale >= 1.3),
+        IconButton(
+          tooltip: 'Notificações',
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          onPressed: onNotifications,
+          icon: const Icon(Icons.notifications_none_rounded),
+        ),
+        Tooltip(
+          message: 'Editar perfil do posto',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: onProfile,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              child: Center(
+                child: StationLogo(stationName: stationName, size: 42),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      decoration: const BoxDecoration(
+        color: AppTheme.background,
+        border: Border(bottom: BorderSide(color: AppTheme.outline)),
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 980),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 700 || textScale >= 1.3) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    title,
+                    const SizedBox(height: 8),
+                    Align(alignment: Alignment.centerRight, child: actions),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  const SizedBox(width: 12),
+                  actions,
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DashboardPriceFields extends StatelessWidget {
+  const DashboardPriceFields({super.key, required this.fields});
+
+  final List<Widget> fields;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fieldWidth = constraints.maxWidth >= 650
+            ? (constraints.maxWidth - 14) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 14,
+          runSpacing: 14,
+          children: [
+            for (final field in fields)
+              SizedBox(width: fieldWidth, child: field),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class DashboardOpeningHourRow extends StatelessWidget {
+  const DashboardOpeningHourRow({
+    super.key,
+    required this.dayLabel,
+    required this.enabled,
+    required this.openLabel,
+    required this.closeLabel,
+    required this.onEnabledChanged,
+    required this.onOpenPressed,
+    required this.onClosePressed,
+  });
+
+  final String dayLabel;
+  final bool enabled;
+  final String openLabel;
+  final String closeLabel;
+  final ValueChanged<bool> onEnabledChanged;
+  final VoidCallback onOpenPressed;
+  final VoidCallback onClosePressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final dayControl = Row(
+      children: [
+        Switch.adaptive(
+          value: enabled,
+          activeTrackColor: AppTheme.primary,
+          onChanged: onEnabledChanged,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            dayLabel,
+            style: const TextStyle(
+              color: AppTheme.textLight,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+    final hoursControl = enabled
+        ? Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TimeButton(label: openLabel, onPressed: onOpenPressed),
+              const Text('até', style: TextStyle(color: AppTheme.textMuted)),
+              _TimeButton(label: closeLabel, onPressed: onClosePressed),
+            ],
+          )
+        : const Text(
+            'Fechado',
+            style: TextStyle(
+              color: AppTheme.error,
+              fontWeight: FontWeight.w600,
+            ),
+          );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final compact = constraints.maxWidth < 570 || scale >= 1.8;
+        if (compact) {
+          return Column(
+            key: const Key('dashboard-hours-stacked'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [dayControl, const SizedBox(height: 8), hoursControl],
+          );
+        }
+        return Row(
+          key: const Key('dashboard-hours-inline'),
+          children: [
+            Expanded(child: dayControl),
+            hoursControl,
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -1475,12 +1566,13 @@ class _TimeButton extends StatelessWidget {
   }
 }
 
-class _ReviewCard extends StatelessWidget {
+class DashboardReviewCard extends StatelessWidget {
   final StationReview review;
   final bool alreadyReported;
   final VoidCallback onReport;
 
-  const _ReviewCard({
+  const DashboardReviewCard({
+    super.key,
     required this.review,
     required this.alreadyReported,
     required this.onReport,
@@ -1492,48 +1584,53 @@ class _ReviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
-                child: Text(
-                  _initials(review.authorName),
-                  style: const TextStyle(
-                    color: AppTheme.primaryInteractive,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      review.authorName,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final identity = Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.2),
+                    child: Text(
+                      _initials(review.authorName),
                       style: const TextStyle(
-                        color: AppTheme.textLight,
+                        color: AppTheme.primaryInteractive,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: List.generate(5, (index) {
-                        return Icon(
-                          index < review.rating.round()
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          size: 17,
-                          color: AppTheme.rating,
-                        );
-                      }),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          review.authorName,
+                          style: const TextStyle(
+                            color: AppTheme.textLight,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Row(
+                          children: List.generate(5, (index) {
+                            return Icon(
+                              index < review.rating.round()
+                                  ? Icons.star_rounded
+                                  : Icons.star_border_rounded,
+                              size: 17,
+                              color: AppTheme.rating,
+                            );
+                          }),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-              OutlinedButton.icon(
+                  ),
+                ],
+              );
+              final reportButton = OutlinedButton.icon(
                 onPressed: alreadyReported ? null : onReport,
                 style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 48),
                   foregroundColor: AppTheme.error,
                   disabledForegroundColor: AppTheme.textMuted,
                   side: BorderSide(
@@ -1549,8 +1646,29 @@ class _ReviewCard extends StatelessWidget {
                   size: 16,
                 ),
                 label: Text(alreadyReported ? 'Reportada' : 'Denunciar'),
-              ),
-            ],
+              );
+              final scale = MediaQuery.textScalerOf(context).scale(1);
+              if (constraints.maxWidth < 520 || scale >= 1.8) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    identity,
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: reportButton,
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: identity),
+                  const SizedBox(width: 12),
+                  reportButton,
+                ],
+              );
+            },
           ),
           if (review.comment.isNotEmpty) ...[
             const SizedBox(height: 16),
