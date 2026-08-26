@@ -42,3 +42,6 @@ Estas instruções se aplicam a todo o repositório. Antes de implementar, revis
 - Atualize os documentos canônicos quando uma mudança alterar arquitetura, estrutura, produto, interface, segurança ou processo.
 - Não registre funcionalidades planejadas como se já estivessem implementadas.
 - Mantenha instruções curtas, verificáveis e coerentes com o código atual.
+
+
+teste

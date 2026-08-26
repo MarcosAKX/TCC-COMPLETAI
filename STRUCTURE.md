@@ -213,3 +213,8 @@ Decomposição deve seguir **responsabilidade/fluxo** (sections, dialogs, contro
 - [ARCHITECTURE.md](ARCHITECTURE.md) — camadas, fluxos e decisões técnicas
 - [DESIGN.md](DESIGN.md) — tokens, componentes e regras de tela
 - [docs/README.md](docs/README.md) — índice da documentação complementar
+
+
+teste
+
+
