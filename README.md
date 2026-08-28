@@ -32,3 +32,4 @@ Firebase deve estar configurado (`lib/firebase_options.dart`, `google-services.j
 flutter analyze
 flutter test
 ```
+testando git
