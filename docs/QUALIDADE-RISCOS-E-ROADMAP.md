@@ -60,6 +60,16 @@ Processo terminou com exit 1 somente ao tentar gravar telemetria fora do sandbox
 
 ## Roadmap recomendado
 
+### Sequência de execução aprovada para o TCC
+
+1. Concluir as telas e os fluxos visuais do cliente e do posto.
+2. Preparar catálogo demonstrativo sem criar contas falsas nem gravar automaticamente no Firebase real.
+3. Implementar solicitação pendente, análise de CNPJ/e-mail e decisão do usuário administrador.
+4. Mover a concessão do papel de posto para backend confiável e exigir esse papel nas rules.
+5. Executar testes de autorização no Firebase Emulator antes da banca e de qualquer uso público.
+
+Essa sequência organiza o trabalho, mas não altera a prioridade técnica de `SEC-01`: durante as etapas 1 e 2, o cadastro atual continua provisório e o produto não está pronto para produção.
+
 ### Fase 0 — bloquear riscos de segurança
 
 1. Escrever testes de rules que reproduzam escalada cliente → posto.
@@ -109,7 +119,7 @@ Critério: fluxo principal funciona teclado-only, a 200% de texto e em mobile/ta
 
 ## Decisões que precisam de dono
 
-- Quem aprova cadastro de posto e verifica CNPJ?
+- O usuário administrador aprovará o cadastro e verificará CNPJ/e-mail; ainda faltam implementar a interface e a autoridade confiável que executará essa decisão.
 - Reviews sobrevivem à exclusão do cliente, são anonimizadas ou removidas?
 - Dados públicos devem ser acessíveis sem autenticação?
 - Bebedouro é restrição permanente?

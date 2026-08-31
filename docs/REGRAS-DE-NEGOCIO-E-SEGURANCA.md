@@ -37,6 +37,14 @@ Criação de `public_stations/{stationId}` também exige apenas mesmo UID e sche
 
 **Correção recomendada:** papel em Firebase custom claims definido por ambiente confiável, ou callable/HTTP backend com Admin SDK para criar posto após verificação. Rules devem validar claim e consistência entre perfil e recurso. Não usar campo gravável pelo próprio cliente como fonte de autorização.
 
+#### Estado e sequência de entrega aprovados
+
+- **Hoje:** cadastro de posto não aguarda aprovação e publica os documentos imediatamente.
+- **Planejado:** um usuário administrador verifica CNPJ e e-mail, aprova ou rejeita a solicitação e somente a aprovação concede o papel administrativo confiável.
+- **Ordem de desenvolvimento:** concluir primeiro as telas do cliente e do posto; implementar em seguida aprovação administrativa, bloqueio de contas pendentes, rules baseadas em papel confiável e testes no Firebase Emulator.
+- **Limite de entrega:** a prioridade temporária de interface não reduz a severidade P0. O sistema não deve ser declarado pronto para produção ou uso público antes da proteção e dos testes de autorização.
+- **Dados de demonstração:** catálogo e logos podem ser preparados sem criar contas falsas. Qualquer carga deve ser revisável, testada no Emulator e separada do fluxo público de cadastro.
+
 ### P1 — exclusão não é recursiva
 
 Batch em `settings_page.dart` remove documentos `users`, `gas_stations` e `public_stations`, mas Firestore não exclui subcoleções automaticamente. Podem permanecer:

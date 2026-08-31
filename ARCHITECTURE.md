@@ -160,6 +160,23 @@ Score de ranking:
 | P2 | navegação mista | parâmetros e guards frágeis | roteador tipado e guard de sessão/papel |
 | P2 | Firebase bloqueia bootstrap | tela branca/falha total | estado de inicialização e recuperação |
 
+## Provisionamento administrativo planejado
+
+O fluxo atual cria a conta Firebase e os documentos do posto imediatamente; não existe estado pendente nem decisão administrativa aplicada pelas rules. Esse comportamento permanece identificado como dívida P0, mesmo durante a priorização das telas.
+
+O fluxo-alvo, a implementar depois da conclusão das telas do cliente e do posto, é:
+
+```text
+solicitação de cadastro
+→ estado pendente sem publicação ou dashboard
+→ administrador verifica CNPJ e e-mail
+→ backend confiável aprova ou rejeita
+→ aprovação atribui papel confiável
+→ Firestore Rules autorizam apenas o papel aprovado
+```
+
+O cliente não define o próprio papel. A aprovação deve ocorrer em ambiente confiável com Firebase Admin SDK/custom claims ou mecanismo servidor equivalente. Dados demonstrativos de catálogo não devem criar contas falsas de postos nem depender do fluxo público provisório.
+
 ## Documentos relacionados
 
 - [STRUCTURE.md](STRUCTURE.md) — organização de pastas e convenções

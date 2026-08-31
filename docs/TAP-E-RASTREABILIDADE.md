@@ -87,7 +87,7 @@ TAP assume adesão e atualização pelos postos, preços verdadeiros, dispositiv
 ### Conflitos observados
 
 1. **Exclusividade mobile:** repositório contém Web/desktop e Firebase Web configurado. Runners podem ser boilerplate, mas configuração Web indica suporte técnico real. Definir se Web serve apenas para desenvolvimento/demonstração ou viola restrição.
-2. **Preço exclusivo do administrador:** interface restringe fluxo, porém Firestore permite escalada de cliente para posto. Restrição TAP não está garantida.
+2. **Preço exclusivo do administrador:** interface restringe fluxo, porém Firestore permite escalada de cliente para posto. Está planejada aprovação de cadastro por usuário administrador após verificação de CNPJ/e-mail, mas a restrição TAP ainda não está garantida no código.
 3. **Todos os postos ativos:** sistema depende de adesão/cadastro; não existe integração cadastral nem status ativo. Premissa e objetivo entram em tensão.
 4. **Erro inferior a 5%:** TAP exclui responsabilidade/validação legal e não define fonte de comparação. Métrica precisa de método, amostra e fonte confiável.
 
@@ -118,7 +118,7 @@ TAP não atribui formalmente dono de segurança, privacidade, validação de CNP
 3. Definir “posto ativo” e processo de inclusão/verificação.
 4. Separar avaliação de atendimento, procedência e possível fila, ou ajustar TAP ao modelo geral.
 5. Formalizar Web como ferramenta de desenvolvimento ou removê-la do produto demonstrado.
-6. Criar autoridade confiável para contas administrativas.
+6. Implementar a decisão já definida: usuário administrador analisa CNPJ/e-mail, enquanto backend confiável concede o papel e as rules o exigem.
 7. Definir métricas, coleta consentida e metas numéricas para MAU/engajamento.
 
 ## Critérios de aceite derivados
@@ -134,3 +134,7 @@ TAP não atribui formalmente dono de segurança, privacidade, validação de CNP
 ## Atualização visual — 17/08/2026
 
 Redesign preservou não-escopo: não adicionou geolocalização, pagamento, fidelidade ou expansão geográfica. Mudança concentrou tema, hierarquia, formulários, preço, status e acessibilidade. `firestore.rules` não foi alterado porque contrato de dados/autorização permaneceu igual; risco P0 de papel administrativo continua aberto e documentado.
+
+## Sequenciamento registrado — 28/08/2026
+
+A equipe decidiu concluir primeiro as telas do cliente e do posto. Em seguida, antes da entrega final e de qualquer alegação de uso em produção, implementará solicitação pendente, aprovação/rejeição pelo usuário administrador, concessão de papel por backend confiável e testes de rules no Firebase Emulator. Catálogos demonstrativos não devem criar contas falsas de postos nem ser tratados como substitutos desse fluxo.

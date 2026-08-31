@@ -35,6 +35,8 @@ Comparação local de postos de Bebedouro combina preço por combustível, statu
 - Escopo geográfico: Bebedouro; expansão para outras cidades não faz parte do projeto acadêmico atual.
 - Sem venda de combustível, pagamentos, fidelidade, geolocalização ou integração com software interno de postos.
 - Preços só podem ser alterados por contas administrativas verificadas; implementação atual ainda não garante essa restrição de segurança.
+- O fluxo planejado exige aprovação de um usuário administrador após análise do CNPJ e do e-mail do posto. Até essa etapa ser implementada, cadastro e publicação imediatos representam comportamento provisório de desenvolvimento.
+- A sequência de entrega aprovada prioriza concluir as telas do cliente e do posto; aprovação administrativa, endurecimento das rules e testes no Emulator permanecem obrigatórios antes de declarar o produto pronto para produção ou para uso público.
 - Ranking atual usa histórico bayesiano; ranking semanal citado no TAP ainda não existe.
 - Android é plataforma de entrega confirmada. Web presente no repositório deve servir somente ao desenvolvimento/demonstração ou ser removida do escopo entregue.
 - Ferramentas devem permanecer dentro dos limites gratuitos previstos.
