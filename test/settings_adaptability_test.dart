@@ -11,23 +11,68 @@ void main() {
     adaptiveLargeText,
     adaptiveLandscape,
   ]) {
-    testWidgets('zona de perigo permanece alcançável em ${scenario.name}', (
+    testWidgets(
+      'conta de posto oculta logout e mantém exclusão em ${scenario.name}',
+      (tester) async {
+        await pumpAdaptive(
+          tester,
+          MaterialApp(
+            theme: AppTheme.darkTheme,
+            home: Scaffold(
+              body: SettingsContent(
+                showLogout: false,
+                onEditProfile: () {},
+                onLogout: () {},
+                onDeleteAccount: () {},
+              ),
+            ),
+          ),
+          scenario,
+        );
+
+        final dangerZone = find.byKey(const Key('settings-danger-zone'));
+        await tester.dragUntilVisible(
+          dangerZone,
+          find.byType(Scrollable),
+          const Offset(0, -200),
+        );
+
+        expect(dangerZone, findsOneWidget);
+        expect(find.text('Sessão'), findsNothing);
+        expect(find.text('Sair da conta'), findsNothing);
+        expect(find.text('Excluir conta'), findsOneWidget);
+        expectNoLayoutExceptions(tester);
+      },
+    );
+
+    testWidgets('usuário comum mantém logout em ${scenario.name}', (
       tester,
     ) async {
       await pumpAdaptive(
         tester,
-        MaterialApp(theme: AppTheme.darkTheme, home: const SettingsPage()),
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          home: Scaffold(
+            body: SettingsContent(
+              showLogout: true,
+              onEditProfile: () {},
+              onLogout: () {},
+              onDeleteAccount: () {},
+            ),
+          ),
+        ),
         scenario,
       );
 
-      final dangerZone = find.byKey(const Key('settings-danger-zone'));
+      final logout = find.text('Sair da conta');
       await tester.dragUntilVisible(
-        dangerZone,
+        logout,
         find.byType(Scrollable),
         const Offset(0, -200),
       );
 
-      expect(dangerZone, findsOneWidget);
+      expect(logout, findsOneWidget);
+      expect(find.text('Excluir conta'), findsOneWidget);
       expectNoLayoutExceptions(tester);
     });
   }

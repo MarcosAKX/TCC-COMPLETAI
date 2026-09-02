@@ -1,5 +1,20 @@
 # Modelo de dados
 
+## Apresentação pública do posto — 31/08/2026
+
+Os documentos `gas_stations/{uid}` (privado) e `public_stations/{uid}` (público) podem conter `stationBrand`. A ausência ou um valor inválido resulta em “Bandeira branca”. Documentos antigos com `coverImagePath` continuam legíveis, mas esse campo legado é removido no próximo salvamento.
+
+| Campo | Tipo | Projeções | Regra |
+|---|---|---|---|
+| `stationBrand` | `string` opcional | privada e pública | texto de 2 a 60 caracteres; opções de UI Shell, Ipiranga, Petrobras, ALE, RodOil, Bandeira branca ou “Outra” |
+| `updatedAt` | timestamp | privada e pública | atualizado junto com a apresentação |
+
+Cada capa fica em um documento separado `station_covers/{uid}` com `stationId`, `bytes` (`Blob` JPEG), `contentType`, `byteSize` e `updatedAt`. O app aceita JPG, PNG ou WebP de até 5 MiB, redimensiona para no máximo 1280 px e comprime para até 500 KiB antes da gravação. A listagem não consulta capas; apenas o detalhe público e a área administrativa leem esse documento.
+
+As duas projeções e o documento da capa são atualizados na mesma transação Firestore. Salvar somente a bandeira preserva a capa existente; substituir ou remover a foto altera `station_covers/{uid}` atomicamente.
+
+A solução não usa Firebase Storage nem exige ativar o plano Blaze. As regras Firestore foram validadas com `firebase deploy --only firestore:rules --dry-run`; não houve deploy.
+
 ## Visão conceitual
 
 ```mermaid

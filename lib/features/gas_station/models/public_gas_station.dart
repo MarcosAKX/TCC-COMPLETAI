@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PublicGasStation {
@@ -14,6 +16,8 @@ class PublicGasStation {
   final DateTime? updatedAt;
   final double averageRating;
   final int reviewCount;
+  final Uint8List? coverImageBytes;
+  final String stationBrand;
 
   const PublicGasStation({
     required this.id,
@@ -29,6 +33,8 @@ class PublicGasStation {
     required this.updatedAt,
     this.averageRating = 0,
     this.reviewCount = 0,
+    this.coverImageBytes,
+    this.stationBrand = 'Bandeira branca',
   });
 
   factory PublicGasStation.fromDocument(
@@ -69,6 +75,7 @@ class PublicGasStation {
       updatedAt: rawUpdatedAt is Timestamp ? rawUpdatedAt.toDate() : null,
       averageRating: averageRating,
       reviewCount: reviewCount,
+      stationBrand: _stationBrand(data['stationBrand']),
     );
   }
 
@@ -87,6 +94,28 @@ class PublicGasStation {
       updatedAt: updatedAt,
       averageRating: average,
       reviewCount: count,
+      coverImageBytes: coverImageBytes,
+      stationBrand: stationBrand,
+    );
+  }
+
+  PublicGasStation withCoverImageBytes(Uint8List? value) {
+    return PublicGasStation(
+      id: id,
+      name: name,
+      phone: phone,
+      address: address,
+      neighborhood: neighborhood,
+      city: city,
+      fuelPrices: fuelPrices,
+      tags: tags,
+      services: services,
+      openingHours: openingHours,
+      updatedAt: updatedAt,
+      averageRating: averageRating,
+      reviewCount: reviewCount,
+      coverImageBytes: value,
+      stationBrand: stationBrand,
     );
   }
 
@@ -141,6 +170,11 @@ class PublicGasStation {
   static String _string(dynamic value, [String fallback = '']) {
     final text = value is String ? value.trim() : '';
     return text.isEmpty ? fallback : text;
+  }
+
+  static String _stationBrand(dynamic value) {
+    final text = _string(value);
+    return text.length >= 2 && text.length <= 60 ? text : 'Bandeira branca';
   }
 
   static List<String> _stringList(dynamic value) {

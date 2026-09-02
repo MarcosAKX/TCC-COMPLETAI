@@ -64,4 +64,19 @@ void main() {
     draft.markOpeningHoursSaved();
     expect(draft.hasOpeningHourChanges, isFalse);
   });
+
+  test('conta somente preços dentro do intervalo aceito', () {
+    expect(
+      countConfiguredFuelPrices(const [
+        '5,79',
+        '50',
+        '50,001',
+        '0',
+        'abc',
+        'NaN',
+        '',
+      ]),
+      2,
+    );
+  });
 }

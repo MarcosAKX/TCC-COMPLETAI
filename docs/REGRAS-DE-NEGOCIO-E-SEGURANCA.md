@@ -1,5 +1,15 @@
 # Regras de negócio e segurança
 
+## Apresentação do posto no Firestore — 31/08/2026
+
+`stationBrand` é opcional nas projeções `gas_stations/{uid}` e `public_stations/{uid}`. A ausência de capa usa fallback ilustrado; `stationBrand` ausente ou inválido é lido como “Bandeira branca”. A UI apresenta Shell, Ipiranga, Petrobras, ALE, RodOil, Bandeira branca e Outra como nomes/selo, sem logos oficiais. “Outra” exige nome entre 2 e 60 caracteres.
+
+O contrato de `firestore.rules` para `station_covers/{stationId}` permite leitura pública e escrita/exclusão somente ao usuário autenticado que possua `gas_stations/{stationId}`. O documento aceita apenas as chaves previstas, `Blob` JPEG de até 500 KiB, tamanho coerente e timestamp de servidor.
+
+O app normaliza JPG, PNG ou WebP de até 5 MiB para JPEG de até 500 KiB e 1280 px. Uma transação aplica a bandeira nas projeções privada e pública e cria, substitui, preserva ou remove a capa. A lista pública não lê `station_covers`; o detalhe lê a imagem separadamente e mantém o fallback caso a leitura falhe.
+
+A solução usa apenas o Firestore disponível no plano gratuito e não depende de bucket ou Firebase Storage. As regras foram compiladas com sucesso em `--dry-run`; não houve deploy no projeto remoto.
+
 ## Regras funcionais
 
 1. Aplicação opera com dois perfis: `client` e `gas_station`.

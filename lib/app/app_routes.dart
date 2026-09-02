@@ -8,6 +8,7 @@ import '../features/auth/views/forgot_password_page.dart';
 import '../features/gas_station/views/register_station_step_one_page.dart';
 import '../features/gas_station/views/station_dashboard_page.dart';
 import '../features/gas_station/views/station_profile_page.dart';
+import '../features/gas_station/views/station_presentation_page.dart';
 
 import '../features/user/views/profile_page.dart';
 import '../features/user/views/settings_page.dart';
@@ -39,6 +40,8 @@ class AppRoutes {
 
   static const String stationDashboard = '/station-dashboard';
 
+  static const String stationPresentation = '/station-presentation';
+
   static const String settings = '/settings';
 
   // =========================
@@ -65,6 +68,8 @@ class AppRoutes {
     stationProfile: (context) => const StationProfilePage(),
 
     stationDashboard: (context) => const StationDashboardPage(),
+
+    stationPresentation: (context) => const StationPresentationPage(),
 
     settings: (context) => const SettingsPage(),
   };

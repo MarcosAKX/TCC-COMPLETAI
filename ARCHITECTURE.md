@@ -93,7 +93,11 @@ flowchart TD
 
 **Por que denormalizar:** expor CNPJ e e-mail do posto na consulta pública violaria privacidade; projeção pública omite campos sensíveis.
 
-**Como mantém consistência:** `GasStationService` usa batch writes para gravar privado e público juntos nas operações normais. `_ensurePublicProfile` recria perfil público quando perfil privado é carregado.
+**Como mantém consistência:** `GasStationService` usa batch writes para gravar privado e público juntos nas operações normais. A apresentação do posto usa uma transação Firestore que atualiza `stationBrand` nas duas projeções e cria, substitui ou remove `station_covers/{uid}` atomicamente. Se a projeção pública estiver ausente, ela é reconstruída do documento privado. `_ensurePublicProfile` também recria perfil público quando o perfil privado é carregado.
+
+**Foto de capa:** o dono seleciona JPG, PNG ou WebP de até 5 MiB. `StationCoverProcessor` corrige orientação, limita a maior dimensão a 1280 px e gera JPEG de até 500 KiB. Os bytes ficam no documento separado `station_covers/{uid}`; leitura é pública e escrita/remoção é restrita ao posto dono. `getStations()` nunca consulta capas, enquanto `getStation()` lê o documento binário somente no detalhe. Sem documento ou com bytes inválidos, a UI usa a capa ilustrada local.
+
+As regras de `station_covers` fazem parte de `firestore.rules` e foram validadas com `firebase deploy --only firestore:rules --dry-run`. Não houve deploy. A arquitetura não requer bucket, Firebase Storage ou plano Blaze.
 
 **Riscos remanescentes:**
 

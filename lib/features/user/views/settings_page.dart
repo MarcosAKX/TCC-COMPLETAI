@@ -7,8 +7,32 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/responsive_content.dart';
 import '../../../core/widgets/settings_tile.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  late final Future<bool> _isGasStationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _isGasStationFuture = _isGasStation();
+  }
+
+  Future<bool> _isGasStation() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+
+    final document = await FirebaseFirestore.instance
+        .collection('gas_stations')
+        .doc(uid)
+        .get();
+    return document.exists && document.data()?['type'] == 'gas_station';
+  }
 
   Future<void> _goToProfile(BuildContext context) async {
     if (Navigator.canPop(context)) {
@@ -244,33 +268,6 @@ class SettingsPage extends StatelessWidget {
     }
   }
 
-  Widget _buildOptionTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color iconColor = AppTheme.primaryInteractive,
-    Color textColor = AppTheme.textLight,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: AppTheme.card,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppTheme.outline),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SettingsTile(
-          icon: icon,
-          title: title,
-          destructive:
-              iconColor == AppTheme.error || textColor == AppTheme.error,
-          onTap: onTap,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -287,29 +284,63 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ),
-      body: ResponsiveContent(
-        maxWidth: 720,
-        padding: const EdgeInsets.all(24),
-        scrollable: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Minha conta',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppTheme.textLight,
-                fontSize: 20,
-              ),
+      body: FutureBuilder<bool>(
+        future: _isGasStationFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return SettingsContent(
+            showLogout: snapshot.data != true,
+            onEditProfile: () => _goToProfile(context),
+            onLogout: () => _logout(context),
+            onDeleteAccount: () => _deleteAccount(context),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class SettingsContent extends StatelessWidget {
+  const SettingsContent({
+    super.key,
+    required this.showLogout,
+    required this.onEditProfile,
+    required this.onLogout,
+    required this.onDeleteAccount,
+  });
+
+  final bool showLogout;
+  final VoidCallback onEditProfile;
+  final VoidCallback onLogout;
+  final VoidCallback onDeleteAccount;
+
+  @override
+  Widget build(BuildContext context) {
+    return ResponsiveContent(
+      maxWidth: 720,
+      padding: const EdgeInsets.all(24),
+      scrollable: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Minha conta',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: AppTheme.textLight,
+              fontSize: 20,
             ),
-            const SizedBox(height: 16),
-            _buildOptionTile(
-              icon: Icons.person_outline,
-              title: 'Editar perfil',
-              onTap: () {
-                _goToProfile(context);
-              },
-            ),
-            const SizedBox(height: 32),
+          ),
+          const SizedBox(height: 16),
+          _SettingsOptionTile(
+            icon: Icons.person_outline,
+            title: 'Editar perfil',
+            onTap: onEditProfile,
+          ),
+          if (showLogout) ...[
+            const SizedBox(height: 20),
             Text(
               'Sessão',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -318,40 +349,69 @@ class SettingsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            _buildOptionTile(
+            _SettingsOptionTile(
               icon: Icons.logout,
               title: 'Sair da conta',
-              iconColor: AppTheme.error,
-              textColor: AppTheme.error,
-              onTap: () {
-                _logout(context);
-              },
-            ),
-            const SizedBox(height: 32),
-            Column(
-              key: const Key('settings-danger-zone'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Zona de perigo',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppTheme.error,
-                    fontSize: 20,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildOptionTile(
-                  icon: Icons.delete_outline,
-                  title: 'Excluir conta',
-                  iconColor: AppTheme.error,
-                  textColor: AppTheme.error,
-                  onTap: () {
-                    _deleteAccount(context);
-                  },
-                ),
-              ],
+              destructive: true,
+              onTap: onLogout,
             ),
           ],
+          const SizedBox(height: 20),
+          Column(
+            key: const Key('settings-danger-zone'),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Zona de perigo',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.error,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _SettingsOptionTile(
+                icon: Icons.delete_outline,
+                title: 'Excluir conta',
+                destructive: true,
+                onTap: onDeleteAccount,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsOptionTile extends StatelessWidget {
+  const _SettingsOptionTile({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final VoidCallback onTap;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: AppTheme.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: SettingsTile(
+          icon: icon,
+          title: title,
+          destructive: destructive,
+          onTap: onTap,
         ),
       ),
     );

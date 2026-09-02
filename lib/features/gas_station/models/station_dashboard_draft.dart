@@ -1,3 +1,13 @@
+double? validFuelPriceFromText(String value) {
+  final price = double.tryParse(value.trim().replaceAll(',', '.'));
+  if (price == null || !price.isFinite || price <= 0 || price > 50) return null;
+  return price;
+}
+
+int countConfiguredFuelPrices(Iterable<String> values) {
+  return values.where((value) => validFuelPriceFromText(value) != null).length;
+}
+
 class StationDashboardDraft {
   StationDashboardDraft({
     required Map<String, String> prices,

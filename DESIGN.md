@@ -106,6 +106,21 @@ Grade compacta de Gasolina, Etanol e Diesel. Todos os valores permanecem visíve
 
 Avatar abre o perfil do usuário logado. Logo do posto reserva área estável e usa iniciais/ícone como fallback até existir imagem confiável; não inventa URL ou upload.
 
+### `StationRatingOverview`
+
+Resumo compartilhado de reputação para o perfil público e o dashboard. Mostra nota, quantidade de avaliações e, quando a lista completa está disponível, distribuição de 5 a 1 estrelas. A distribuição possui descrição semântica e reflui para coluna com fonte ampliada.
+
+### `StationVisualCover`
+
+Capa compartilhada do posto. Quando há foto persistida, ela ocupa a capa com scrim escuro de pelo menos 60% e superfície escura para o selo, preservando a leitura de texto branco sobre imagens arbitrárias; sem foto ou se a leitura falhar, usa a ilustração local. Não inventa fotografia, coordenadas ou distância; nome, localização textual e estado aberto/fechado permanecem acessíveis por semântica.
+
+### Apresentação do posto
+
+- “Editar exibição” abre a rota `/station-presentation` para o dono escolher/remover a capa e definir a bandeira.
+- A seleção aceita JPG, PNG e WebP até 5 MiB; a aplicação gera JPEG de até 500 KiB e 1280 px, e a prévia local mostra os bytes normalizados antes de salvar.
+- O selo de bandeira usa texto: Shell, Ipiranga, Petrobras, ALE, RodOil, Bandeira branca ou um nome informado em “Outra”. Não usar logos oficiais.
+- A foto persistida é resolvida apenas no perfil público detalhado; a lista não busca URLs de Storage.
+
 ### `DecisionHighlightCard`
 
 Componente legado mantido para compatibilidade. Não usar em novas listas; descoberta “Meu combustível” substitui destaques duplicados pelo ranking contextual.
@@ -155,7 +170,12 @@ Aberto/fechado com ícone + texto + cor.
 
 ### Perfil público
 
-- nome/status → preços (menor destacado) → frescor → serviços → avaliações;
+- capa/identidade → ações → rota por endereço → combustíveis → serviços/horários → avaliações;
+- identidade usa card claro com acento azul, logo confiável, cidade, endereço, status e metadados de confiança;
+- “Como chegar”, “Avaliar” e “Favoritar” permanecem próximos da identidade do posto;
+- a rota usa uma ilustração cartográfica local e abre o provedor externo pelo endereço; não sugere posição ou distância inexistente;
+- combustíveis e horários ficam visíveis em cards próprios, sem expansão obrigatória;
+- características e serviços são apresentados separadamente;
 - “Como chegar” abre a rota em aplicativo externo usando a localização atual gerenciada pelo serviço de mapas;
 - botões secundários com contorno visível sobre fundo claro;
 - denúncia em papel de erro.
@@ -165,10 +185,19 @@ Aberto/fechado com ícone + texto + cor.
 - abre em **Preços**, a tarefa diária prioritária;
 - navegação usa barra inferior em largura compacta e rail em largura ampliada;
 - destinos: Preços, Informações, Horários e Avaliações;
+- cabeçalho identifica o posto e a área administrativa; resumo operacional informa combustíveis configurados, serviços e dias ativos;
+- cada seção relevante pode exibir uma prévia visual do que o cliente verá, sem criar uma segunda fonte de dados;
+- o acesso “Editar exibição” é uma tarefa própria e não mistura upload de capa com os demais campos administrativos;
 - seção de preços com fundo neutro e contador de alterações dentro da tarefa;
 - um único CTA por seção: publicar preços, salvar informações ou salvar horários;
 - cada CTA persiste somente os dados da própria seção;
 - saída com mudanças pendentes oferece continuar editando ou descartá-las.
+
+### Perfil e configurações
+
+- o logout da conta de posto fica no perfil do posto;
+- Configurações não mostra logout para esse papel;
+- o usuário comum continua encontrando logout em Configurações.
 
 ## Copy and UX writing
 

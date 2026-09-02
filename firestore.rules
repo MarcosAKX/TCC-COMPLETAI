@@ -10,6 +10,14 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function ownsGasStation(uid) {
+      return ownsDocument(uid)
+          && exists(/databases/$(database)/documents/gas_stations/$(uid))
+          && get(
+            /databases/$(database)/documents/gas_stations/$(uid)
+          ).data.type == 'gas_station';
+    }
+
     function isClient() {
       return signedIn()
           && exists(
@@ -62,10 +70,22 @@ service cloud.firestore {
               || validOpeningHours(data.openingHours));
     }
 
+    function validStationPresentation(data, stationId) {
+      return (!('stationBrand' in data)
+              || validString(data.stationBrand, 2, 60))
+          && (!('coverImagePath' in data)
+              || (data.coverImagePath is string
+                  && data.coverImagePath.matches(
+                    '^station_covers/' + stationId
+                      + '/cover_[0-9]+\\.(jpg|png|webp)$'
+                  )));
+    }
+
     function validPublicStation(data, stationId) {
       return data.keys().hasOnly([
             'uid', 'name', 'phone', 'address', 'neighborhood', 'city',
             'fuelPrices', 'tags', 'services', 'openingHours',
+            'coverImagePath', 'stationBrand',
             'createdAt', 'updatedAt'
           ])
           && data.keys().hasAll([
@@ -81,7 +101,8 @@ service cloud.firestore {
           && validString(data.neighborhood, 2, 100)
           && data.city is string
           && data.city.lower() == 'bebedouro'
-          && validAdministrativeData(data);
+          && validAdministrativeData(data)
+          && validStationPresentation(data, stationId);
     }
 
     match /users/{uid} {
@@ -133,7 +154,8 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly([
             'uid', 'name', 'cnpj', 'phone', 'email', 'address',
             'neighborhood', 'city', 'type', 'fuelPrices', 'tags',
-            'services', 'openingHours', 'createdAt', 'updatedAt'
+            'services', 'openingHours', 'coverImagePath', 'stationBrand',
+            'createdAt', 'updatedAt'
           ])
           && request.resource.data.keys().hasAll([
             'uid', 'name', 'cnpj', 'phone', 'email', 'address',
@@ -155,6 +177,7 @@ service cloud.firestore {
           && request.resource.data.city is string
           && request.resource.data.city.lower() == 'bebedouro'
           && validAdministrativeData(request.resource.data)
+          && validStationPresentation(request.resource.data, uid)
           && request.resource.data.createdAt == request.time
           && request.resource.data.updatedAt == request.time;
 
@@ -162,7 +185,8 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly([
                 'name', 'phone', 'address', 'neighborhood', 'city',
-                'fuelPrices', 'tags', 'services', 'openingHours', 'updatedAt'
+                'fuelPrices', 'tags', 'services', 'openingHours',
+                'coverImagePath', 'stationBrand', 'updatedAt'
               ])
           && validString(request.resource.data.name, 3, 120)
           && request.resource.data.phone is string
@@ -172,6 +196,7 @@ service cloud.firestore {
           && request.resource.data.city is string
           && request.resource.data.city.lower() == 'bebedouro'
           && validAdministrativeData(request.resource.data)
+          && validStationPresentation(request.resource.data, uid)
           && request.resource.data.updatedAt == request.time;
     }
 
@@ -188,7 +213,8 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly([
                 'name', 'phone', 'address', 'neighborhood', 'city',
-                'fuelPrices', 'tags', 'services', 'openingHours', 'updatedAt'
+                'fuelPrices', 'tags', 'services', 'openingHours',
+                'coverImagePath', 'stationBrand', 'updatedAt'
               ])
           && validPublicStation(request.resource.data, stationId)
           && request.resource.data.updatedAt == request.time;
@@ -294,6 +320,28 @@ service cloud.firestore {
 
         allow update, delete: if false;
       }
+    }
+
+    match /station_covers/{stationId} {
+      allow read: if true;
+
+      allow create, update: if ownsGasStation(stationId)
+          && request.resource.data.keys().hasOnly([
+            'stationId', 'bytes', 'contentType', 'byteSize', 'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'stationId', 'bytes', 'contentType', 'byteSize', 'updatedAt'
+          ])
+          && request.resource.data.stationId == stationId
+          && request.resource.data.bytes is bytes
+          && request.resource.data.bytes.size() <= 500 * 1024
+          && request.resource.data.contentType == 'image/jpeg'
+          && request.resource.data.byteSize is int
+          && request.resource.data.byteSize
+              == request.resource.data.bytes.size()
+          && request.resource.data.updatedAt == request.time;
+
+      allow delete: if ownsGasStation(stationId);
     }
 
     match /{document=**} {
