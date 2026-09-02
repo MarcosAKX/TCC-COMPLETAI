@@ -34,6 +34,9 @@ Comparação local de postos de Bebedouro combina preço por combustível, statu
 
 - Escopo geográfico: Bebedouro; expansão para outras cidades não faz parte do projeto acadêmico atual.
 - Sem venda de combustível, pagamentos, fidelidade, geolocalização ou integração com software interno de postos.
+- Cada posto pode optar por uma foto de capa e uma bandeira textual. A foto é normalizada para JPEG de até 500 KiB e gravada pelo dono em `station_covers/{uid}`, documento separado do Firestore; o perfil público continua utilizável com a capa ilustrada de fallback quando não houver foto ou quando ela não puder ser lida.
+- As bandeiras disponíveis são Shell, Ipiranga, Petrobras, ALE, RodOil, Bandeira branca e Outra. O produto não usa nem afirma ter logos oficiais dessas marcas; a identidade é texto e selo visual.
+- A solução permanece no plano Spark e não depende de Firebase Storage ou Blaze. As regras do Firestore foram validadas em `dry-run`, mas não foram implantadas.
 - Preços só podem ser alterados por contas administrativas verificadas; implementação atual ainda não garante essa restrição de segurança.
 - Ranking atual usa histórico bayesiano; ranking semanal citado no TAP ainda não existe.
 - Android é plataforma de entrega confirmada. Web presente no repositório deve servir somente ao desenvolvimento/demonstração ou ser removida do escopo entregue.

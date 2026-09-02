@@ -46,7 +46,7 @@ Código transversal a features:
 | `theme/` | `AppTheme` — cores, `ColorScheme`, `TextTheme`, temas de input/botão |
 | `widgets/` | componentes reutilizáveis sem lógica de domínio pesada |
 
-Widgets core atuais: `CustomButton`, `CustomTextField`, `BrandHeader`, `StepProgressHeader`, `PriceDisplay`, `DecisionHighlightCard`, `WelcomeSummaryHeader`, `TrustBadge`, `StatusPill`.
+Widgets core atuais: `CustomButton`, `CustomTextField`, `BrandHeader`, `StepProgressHeader`, `PriceDisplay`, `DecisionHighlightCard`, `WelcomeSummaryHeader`, `TrustBadge`, `StatusPill`, `StationRatingOverview`, `StationVisualCover`.
 
 **Regra:** reutilizar widgets core antes de criar componente local em feature.
 
@@ -82,10 +82,12 @@ Nem toda feature usa todas as subpastas. `user/` não possui viewmodels nem repo
 | Artefato | Responsabilidade |
 |---|---|
 | `models/` | cadastro privado, leitura pública, avaliação |
+| `models/station_presentation.dart` | campos opcionais de capa/bandeira e validação de arquivo |
 | `viewmodels/register_station_viewmodel.dart` | cadastro em duas etapas |
 | `repositories/gas_station_repository.dart` | usado no cadastro |
 | `services/gas_station_service.dart` | perfil privado/público, preços, horários, batch |
-| `views/` | cadastro (2 etapas), dashboard, perfil do posto |
+| `services/station_presentation_service.dart` | upload, transação das projeções e limpeza de capas |
+| `views/` | cadastro (2 etapas), dashboard, perfil do posto e Editar exibição |
 
 #### `features/user/`
 
@@ -105,6 +107,8 @@ Nem toda feature usa todas as subpastas. `user/` não possui viewmodels nem repo
 | `design_system_test.dart` | contratos de tema e tokens |
 | `auth_visual_flow_test.dart` | fluxo visual de autenticação |
 | `station_visual_components_test.dart` | componentes de posto/preço/status |
+| `station_presentation*_test.dart` | modelo, serviço, rota/editor e adaptatividade da apresentação |
+| `public_gas_station_test.dart` | parsing compatível e resolução de capa apenas no detalhe |
 | `station_discovery_filter_test.dart` | filtro, busca, ordenação e melhor preço por combustível |
 | `station_discovery_widgets_test.dart` | seletor e card da descoberta |
 
@@ -115,7 +119,7 @@ Novos testes devem seguir o padrão existente: comportamento verificável, não 
 | Path | Uso |
 |---|---|
 | `firestore.rules` | fonte de verdade de autorização; revisar quando dados ou auth mudarem |
-| `firebase.json` | deploy de rules e serviços Firebase |
+| `firebase.json` | referência para deploy das regras Firestore e serviços Firebase |
 | `analysis_options.yaml` | lint via `flutter_lints` padrão |
 | `android/`, `web/` | plataformas com Firebase configurado |
 | `ios/`, `windows/`, `linux/`, `macos/` | runners presentes; Firebase não inicializa |
@@ -150,6 +154,7 @@ Definidas em `lib/app/app_routes.dart`:
 | `stationList` | `/stations` | `StationListPage` |
 | `stationProfile` | `/station-profile` | `StationProfilePage` |
 | `stationDashboard` | `/station-dashboard` | `StationDashboardPage` |
+| `stationPresentation` | `/station-presentation` | `StationPresentationPage` (“Editar exibição”) |
 | `settings` | `/settings` | `SettingsPage` |
 
 **Exceções:**
@@ -180,12 +185,19 @@ Rota inicial: `/login` (`app_widget.dart`).
 |---|---|
 | `app_user_avatar.dart` | foto/iniciais do usuário e acesso semântico ao perfil |
 | `station_logo.dart` | logo confiável ou fallback por iniciais/ícone |
+| `station_rating_overview.dart` | nota, volume e distribuição acessível das avaliações |
 | `fuel_price_grid.dart` | Gasolina, Etanol e Diesel com seleção e melhor valor |
 | `section_card.dart` | agrupamento neutro compartilhado |
 | `settings_tile.dart` | opção de configuração comum ou destrutiva |
 | `discovery_station_card.dart` | identidade, três preços, status, frescor e navegação do posto |
 
-Views não devem recriar estes contratos com `Container` local. Novos campos de imagem exigem lote próprio de modelo, Storage e segurança; `StationLogo` não autoriza persistência.
+Views não devem recriar estes contratos com `Container` local. `StationVisualCover` aceita os bytes da foto persistida ou a ilustração de fallback; `StationLogo` continua sem persistência de logo. O documento `station_covers/{uid}` é lido somente no detalhe público, não na lista.
+
+## Dependências e geração de plataforma
+
+`image_picker` seleciona a foto e `image` redimensiona/comprime o arquivo antes da persistência no Firestore. Os registradores de plugin gerados que acompanham `image_picker` devem ser preservados e não são editados manualmente.
+
+Não há dependência de Firebase Storage ou plano Blaze. `firestore.rules` protege `station_covers/{uid}` e foi validado pela Firebase CLI com `--dry-run`; não houve deploy remoto.
 
 ## Arquivos grandes (candidatos a decomposição)
 

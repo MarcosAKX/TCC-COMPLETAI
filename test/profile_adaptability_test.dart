@@ -157,6 +157,7 @@ void main() {
               onEditNeighborhood: () {},
               onEditCity: () {},
               onChangePassword: () {},
+              onLogout: () {},
             ),
           ),
         ),
@@ -182,6 +183,22 @@ void main() {
         find.widgetWithText(ElevatedButton, 'Alterar senha').hitTestable(),
         findsOneWidget,
       );
+      final logoutAction = find.byKey(
+        const Key('station-profile-logout-action'),
+      );
+      await Scrollable.ensureVisible(
+        tester.element(logoutAction),
+        alignment: 1,
+      );
+      await tester.pump();
+
+      expect(find.text('Sair da conta'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('Sair da conta')).dy,
+        greaterThan(tester.getTopLeft(find.text('Alterar senha')).dy),
+      );
+      expect(logoutAction.hitTestable(), findsOneWidget);
+      expect(tester.getSize(logoutAction).height, greaterThanOrEqualTo(48));
       expect(find.text(_longAddress), findsOneWidget);
       expectNoLayoutExceptions(tester);
       if (scenario == adaptiveLargeText) {
@@ -237,6 +254,18 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Avaliar'), findsOneWidget);
+      expect(find.text('Características do posto'), findsOneWidget);
+      expect(find.text('Serviços no local'), findsOneWidget);
+      expect(find.byKey(const Key('station-visual-cover')), findsOneWidget);
+      expect(find.text('SHELL'), findsOneWidget);
+      expect(find.text('Combustíveis disponíveis'), findsOneWidget);
+      expect(find.text('Endereço e rota'), findsOneWidget);
+      expect(
+        find.text('Prévia ilustrativa. A rota será calculada no mapa.'),
+        findsOneWidget,
+      );
+      expect(find.text('Horários de funcionamento'), findsOneWidget);
+      expect(find.text('Resumo das avaliações'), findsOneWidget);
       expect(find.textContaining(_longAddress), findsWidgets);
       expectNoLayoutExceptions(tester);
       if (scenario == adaptiveLargeText) {
@@ -517,6 +546,7 @@ PublicGasStation _station() {
     updatedAt: null,
     averageRating: 4.8,
     reviewCount: 12,
+    stationBrand: 'Shell',
   );
 }
 

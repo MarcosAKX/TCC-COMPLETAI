@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../../app/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
@@ -209,6 +210,40 @@ class _StationProfilePageState extends State<StationProfilePage> {
     confirmPasswordController.dispose();
   }
 
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: const Text(
+          'Sair da conta',
+          style: TextStyle(color: AppTheme.textLight),
+        ),
+        content: const Text(
+          'Deseja encerrar a sessão deste posto?',
+          style: TextStyle(color: AppTheme.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sair', style: TextStyle(color: AppTheme.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || confirmed != true) return;
+
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+
+    Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -268,6 +303,7 @@ class _StationProfilePageState extends State<StationProfilePage> {
                 controller: _cityController,
               ),
               onChangePassword: _openChangePasswordModal,
+              onLogout: _logout,
             ),
     );
   }
@@ -289,6 +325,7 @@ class StationProfileContent extends StatelessWidget {
     required this.onEditNeighborhood,
     required this.onEditCity,
     required this.onChangePassword,
+    required this.onLogout,
   });
 
   final String stationName;
@@ -304,6 +341,7 @@ class StationProfileContent extends StatelessWidget {
   final VoidCallback onEditNeighborhood;
   final VoidCallback onEditCity;
   final VoidCallback onChangePassword;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -383,6 +421,21 @@ class StationProfileContent extends StatelessWidget {
                   onPressed: onChangePassword,
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const Key('station-profile-logout-action'),
+                onPressed: onLogout,
+                icon: const Icon(Icons.logout),
+                label: const Text('Sair da conta'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.error,
+                  side: const BorderSide(color: AppTheme.error),
+                  minimumSize: const Size.fromHeight(52),
+                ),
+              ),
             ),
           ],
         ),

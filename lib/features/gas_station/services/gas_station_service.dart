@@ -4,6 +4,51 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/gas_station_model.dart';
 import '../models/station_review.dart';
 
+Map<String, dynamic> buildPublicStationPresentationFields(
+  Map<String, dynamic> stationData,
+) {
+  final result = <String, dynamic>{};
+  final brand = stationData['stationBrand'];
+  if (brand is String && brand.trim().length >= 2) {
+    result['stationBrand'] = brand.trim();
+  }
+  return result;
+}
+
+Map<String, dynamic> buildExistingPublicStationUpdateFields(
+  Map<String, dynamic> updates,
+) {
+  const publicFields = {
+    'name',
+    'phone',
+    'address',
+    'neighborhood',
+    'city',
+    'fuelPrices',
+    'tags',
+    'services',
+    'openingHours',
+  };
+  return {
+    for (final entry in updates.entries)
+      if (publicFields.contains(entry.key)) entry.key: entry.value,
+  };
+}
+
+Map<String, dynamic> buildPublicStationData(
+  Map<String, dynamic> stationData, {
+  Map<String, double>? fuelPrices,
+  List<String>? tags,
+  List<String>? services,
+  Map<String, Map<String, dynamic>>? openingHours,
+}) => GasStationService.buildPublicStationData(
+  stationData,
+  fuelPrices: fuelPrices,
+  tags: tags,
+  services: services,
+  openingHours: openingHours,
+);
+
 class GasStationService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -40,7 +85,7 @@ class GasStationService {
       final batch = _firestore.batch();
       batch.set(privateReference, privateData);
       batch.set(publicReference, {
-        ..._buildPublicStationData(privateData),
+        ...buildPublicStationData(privateData),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
@@ -123,34 +168,34 @@ class GasStationService {
     final publicReference = _firestore
         .collection('public_stations')
         .doc(privateReference.id);
-    final documents = await Future.wait([
-      privateReference.get(),
-      publicReference.get(),
-    ]);
-    final stationData = documents[0].data();
-    if (stationData == null) {
-      throw StateError('Perfil do posto não encontrado.');
-    }
+    await _firestore.runTransaction<void>((transaction) async {
+      final privateDocument = await transaction.get(privateReference);
+      final publicDocument = await transaction.get(publicReference);
+      final stationData = privateDocument.data();
+      if (stationData == null) {
+        throw StateError('Perfil do posto não encontrado.');
+      }
 
-    final publicData = _buildPublicStationData(
-      stationData,
-      fuelPrices: fuelPrices,
-      tags: tags,
-      services: services,
-      openingHours: openingHours,
-    );
-    publicData['updatedAt'] = FieldValue.serverTimestamp();
-    if (!documents[1].exists) {
-      publicData['createdAt'] = FieldValue.serverTimestamp();
-    }
+      final publicData = publicDocument.exists
+          ? buildExistingPublicStationUpdateFields(privateUpdates)
+          : buildPublicStationData(
+              stationData,
+              fuelPrices: fuelPrices,
+              tags: tags,
+              services: services,
+              openingHours: openingHours,
+            );
+      publicData['updatedAt'] = FieldValue.serverTimestamp();
+      if (!publicDocument.exists) {
+        publicData['createdAt'] = FieldValue.serverTimestamp();
+      }
 
-    final batch = _firestore.batch();
-    batch.update(privateReference, {
-      ...privateUpdates,
-      'updatedAt': FieldValue.serverTimestamp(),
+      transaction.update(privateReference, {
+        ...privateUpdates,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.set(publicReference, publicData, SetOptions(merge: true));
     });
-    batch.set(publicReference, publicData, SetOptions(merge: true));
-    await batch.commit();
   }
 
   Stream<List<StationReview>> watchCurrentStationReviews() {
@@ -220,29 +265,29 @@ class GasStationService {
     final publicReference = _firestore
         .collection('public_stations')
         .doc(privateReference.id);
-    final documents = await Future.wait([
-      privateReference.get(),
-      publicReference.get(),
-    ]);
-    final stationData = documents[0].data();
-    if (stationData == null) {
-      throw StateError('Perfil do posto não encontrado.');
-    }
-    stationData[field] = normalizedValue;
+    await _firestore.runTransaction<void>((transaction) async {
+      final privateDocument = await transaction.get(privateReference);
+      final publicDocument = await transaction.get(publicReference);
+      final stationData = privateDocument.data();
+      if (stationData == null) {
+        throw StateError('Perfil do posto não encontrado.');
+      }
+      stationData[field] = normalizedValue;
 
-    final publicData = _buildPublicStationData(stationData);
-    publicData['updatedAt'] = FieldValue.serverTimestamp();
-    if (!documents[1].exists) {
-      publicData['createdAt'] = FieldValue.serverTimestamp();
-    }
+      final publicData = publicDocument.exists
+          ? buildExistingPublicStationUpdateFields({field: normalizedValue})
+          : buildPublicStationData(stationData);
+      publicData['updatedAt'] = FieldValue.serverTimestamp();
+      if (!publicDocument.exists) {
+        publicData['createdAt'] = FieldValue.serverTimestamp();
+      }
 
-    final batch = _firestore.batch();
-    batch.update(privateReference, {
-      field: normalizedValue,
-      'updatedAt': FieldValue.serverTimestamp(),
+      transaction.update(privateReference, {
+        field: normalizedValue,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      transaction.set(publicReference, publicData, SetOptions(merge: true));
     });
-    batch.set(publicReference, publicData, SetOptions(merge: true));
-    await batch.commit();
   }
 
   DocumentReference<Map<String, dynamic>> _currentStationReference() {
@@ -267,13 +312,13 @@ class GasStationService {
     if (document.exists) return;
 
     await reference.set({
-      ..._buildPublicStationData(stationData),
+      ...buildPublicStationData(stationData),
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 
-  static Map<String, dynamic> _buildPublicStationData(
+  static Map<String, dynamic> buildPublicStationData(
     Map<String, dynamic> stationData, {
     Map<String, double>? fuelPrices,
     List<String>? tags,
@@ -293,6 +338,7 @@ class GasStationService {
       'services': services ?? stationData['services'] ?? <String>[],
       'openingHours':
           openingHours ?? stationData['openingHours'] ?? _defaultOpeningHours,
+      ...buildPublicStationPresentationFields(stationData),
     };
   }
 

@@ -48,6 +48,11 @@ void main() {
 
       expectNoLayoutExceptions(tester);
       expect(find.text('Completai!'), findsOneWidget);
+      expect(
+        find.text('Posto Avenida com nome bastante extenso'),
+        findsOneWidget,
+      );
+      expect(find.text('Área administrativa'), findsOneWidget);
       expect(find.text('Etanol'), findsOneWidget);
     });
   }
@@ -106,6 +111,66 @@ void main() {
       const Offset(0, -240),
     );
     expect(find.byKey(ctaKey), findsOneWidget);
+    expectNoLayoutExceptions(tester);
+  });
+
+  testWidgets('resumo operacional expõe a completude do cadastro', (
+    tester,
+  ) async {
+    await pumpAdaptive(
+      tester,
+      app(
+        const DashboardOperationalOverview(
+          configuredPriceCount: 4,
+          serviceCount: 6,
+          activeDayCount: 7,
+        ),
+      ),
+      adaptiveSmallPhone,
+    );
+
+    expect(find.text('4 de 5'), findsOneWidget);
+    expect(find.text('6 serviços'), findsOneWidget);
+    expect(find.text('7 dias ativos'), findsOneWidget);
+    expectNoLayoutExceptions(tester);
+  });
+
+  testWidgets('prévia pública apresenta o posto como o cliente verá', (
+    tester,
+  ) async {
+    var editCount = 0;
+    await pumpAdaptive(
+      tester,
+      app(
+        SingleChildScrollView(
+          child: DashboardPublicPreview(
+            stationName: 'Posto Avenida com nome bastante extenso',
+            address: 'Avenida Central, 123 · Bebedouro',
+            isOpen: true,
+            configuredPriceCount: 4,
+            serviceCount: 6,
+            activeDayCount: 7,
+            lastUpdatedText: 'Hoje às 10:30',
+            coverImageUrl: 'https://example.invalid/cover.jpg',
+            stationBrand: 'Shell',
+            onEditPresentation: () => editCount++,
+          ),
+        ),
+      ),
+      adaptiveLargeText,
+    );
+
+    expect(find.text('Prévia para clientes'), findsOneWidget);
+    expect(find.byKey(const Key('station-visual-cover')), findsOneWidget);
+    expect(find.text('4 combustíveis'), findsOneWidget);
+    expect(find.text('6 serviços'), findsOneWidget);
+    expect(find.text('7 dias ativos'), findsOneWidget);
+    expect(find.text('SHELL'), findsOneWidget);
+    final image = tester.widget<Image>(find.byType(Image));
+    expect(image.image, isA<NetworkImage>());
+    expect((image.image as NetworkImage).url, contains('cover.jpg'));
+    await tester.tap(find.byTooltip('Editar exibição'));
+    expect(editCount, 1);
     expectNoLayoutExceptions(tester);
   });
 

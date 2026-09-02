@@ -1,5 +1,25 @@
 # Design e interface
 
+## Apresentação do posto: capa, bandeira e saída — 31/08/2026
+
+O refinamento das telas do posto agora admite uma foto de capa real, opcional, sem substituir a identidade visual existente. A capa persistida recebe scrim superior escuro de pelo menos 60% e selo de bandeira sobre superfície escura para manter contraste de texto branco; sem foto ou com falha de carregamento, `StationVisualCover` mantém a ilustração local. A seleção de JPG, PNG ou WebP até 5 MiB é normalizada para JPEG de até 500 KiB e mostra prévia antes do salvamento.
+
+O posto abre a rota **Editar exibição** para escolher/remover a capa e editar a bandeira. Shell, Ipiranga, Petrobras, ALE, RodOil e Bandeira branca são apresentados em selo textual; não há logos oficiais. “Outra” exige nome. O perfil público reutiliza a mesma foto/bandeira, mas a URL da foto é resolvida somente no detalhe, não na lista, para evitar leituras de Storage por card.
+
+O logout da conta de posto fica no perfil do posto. Configurações não exibe logout para esse papel; para usuários comuns, o logout continua em Configurações. A validação manual de navegador/dispositivo continua pendente desta documentação e deve ser feita pelo controller.
+
+A foto fica em `station_covers/{uid}` no Firestore, carregada apenas na edição e no detalhe público. A solução não exige Blaze nem bucket. As regras passaram no `dry-run`; não houve deploy.
+
+## Refinamento integrado das telas do posto — 30/08/2026
+
+O dashboard administrativo e o perfil público passaram a compartilhar a mesma hierarquia visual sem alterar modelos, Firestore ou fluxos existentes. A evolução preserva Manrope, superfícies claras, azul para interação e verde somente para melhor valor comprovado ou estado de sucesso.
+
+No dashboard, o cabeçalho identifica o posto e a área administrativa. Um resumo operacional apresenta quantidade de combustíveis configurados, serviços selecionados e dias ativos. A identidade ganhou uma prévia pública com capa ilustrada, status, frescor e indicadores reais do cadastro; a aba de avaliações usa o resumo compartilhado de reputação.
+
+No perfil público, uma capa ilustrada azul-verde antecede a identidade, e as ações “Como chegar”, “Avaliar” e “Favoritar” aparecem antes dos detalhes extensos. A rota ganhou uma prévia cartográfica decorativa que continua abrindo o provedor externo pelo endereço. Combustíveis, características, serviços e horários possuem blocos próprios e sempre visíveis. O resumo de avaliações anuncia nota, volume e distribuição ao leitor de tela.
+
+O refinamento não adiciona fotografia fictícia, mapa real, geolocalização, coordenadas, novos campos nem novas escritas. Capa e rota são ilustrações locais e não afirmam posição, distância ou trajeto calculado. O fallback de logo permanece como fonte confiável de identidade visual.
+
 ## Contrato de adaptatividade Android — 24/08/2026
 
 Os fluxos existentes de autenticação, configurações, descoberta, perfis e dashboard foram adaptados sem alterar regras de negócio ou promover redesign. O contrato cobre celulares Android compactos entre 320 e 600 dp de largura, retrato e paisagem, teclado virtual e escala de texto do sistema até 2,0×.

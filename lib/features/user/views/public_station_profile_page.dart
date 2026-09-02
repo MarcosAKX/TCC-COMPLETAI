@@ -8,6 +8,8 @@ import '../../../core/widgets/price_display.dart';
 import '../../../core/widgets/responsive_content.dart';
 import '../../../core/widgets/section_card.dart';
 import '../../../core/widgets/station_logo.dart';
+import '../../../core/widgets/station_rating_overview.dart';
+import '../../../core/widgets/station_visual_cover.dart';
 import '../../../core/widgets/status_pill.dart';
 import '../../../core/widgets/trust_badge.dart';
 import '../../gas_station/models/public_gas_station.dart';
@@ -265,16 +267,12 @@ class PublicStationProfileContent extends StatelessWidget {
   final void Function(StationReview review) onReportReview;
   final VoidCallback onReportStation;
 
-  ButtonStyle get _secondaryButtonStyle => OutlinedButton.styleFrom(
-    minimumSize: const Size.fromHeight(52),
-    foregroundColor: AppTheme.primary,
-    side: const BorderSide(color: AppTheme.outline),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-  );
-
   @override
   Widget build(BuildContext context) {
-    final services = {...station.services, ...station.tags};
+    final coverLocation = [
+      station.neighborhood,
+      station.city,
+    ].where((part) => part.trim().isNotEmpty).join(' · ');
     return RefreshIndicator(
       color: AppTheme.primaryInteractive,
       onRefresh: onRefresh,
@@ -285,15 +283,35 @@ class PublicStationProfileContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            StationVisualCover(
+              stationName: station.name,
+              locationLabel: coverLocation,
+              isOpen: station.isOpenAt(DateTime.now()),
+              coverImageBytes: station.coverImageBytes,
+              stationBrand: station.stationBrand,
+            ),
+            const SizedBox(height: 14),
             _StationHeader(station: station),
+            const SizedBox(height: 18),
+            _ProfileActions(
+              favoriteStream: favoriteStream,
+              onDirections: onDirections,
+              onReview: onReview,
+              onToggleFavorite: onToggleFavorite,
+            ),
+            const SizedBox(height: 18),
+            _RoutePreviewCard(
+              address: station.fullAddress,
+              onDirections: onDirections,
+            ),
             const SizedBox(height: 22),
             _PricesCard(station: station),
             const SizedBox(height: 25),
-            const _SectionTitle(title: 'Serviços disponíveis'),
+            const _SectionTitle(title: 'Características do posto'),
             const SizedBox(height: 11),
-            if (services.isEmpty)
+            if (station.tags.isEmpty)
               Text(
-                'Nenhum serviço informado.',
+                'Nenhuma característica informada.',
                 style: Theme.of(
                   context,
                 ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
@@ -302,73 +320,51 @@ class PublicStationProfileContent extends StatelessWidget {
               Wrap(
                 spacing: 9,
                 runSpacing: 9,
-                children: services
-                    .map((item) => _ServiceChip(label: item))
+                children: station.tags
+                    .map((item) => _CharacteristicChip(label: item))
                     .toList(),
               ),
             const SizedBox(height: 25),
-            _InformationCard(station: station),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: onDirections,
-              icon: const Icon(Icons.directions_outlined),
-              label: const Text('Como chegar'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                backgroundColor: AppTheme.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
+            const _SectionTitle(title: 'Serviços no local'),
+            const SizedBox(height: 11),
+            if (station.services.isEmpty)
+              Text(
+                'Nenhum serviço informado.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.textMuted),
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemWidth = constraints.maxWidth >= 560
+                      ? (constraints.maxWidth - 10) / 2
+                      : constraints.maxWidth;
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: station.services
+                        .map(
+                          (item) => SizedBox(
+                            width: itemWidth,
+                            child: _ServiceTile(label: item),
+                          ),
+                        )
+                        .toList(),
+                  );
+                },
               ),
-            ),
-            const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final compact = constraints.maxWidth < 520;
-                final actionWidth = compact
-                    ? double.infinity
-                    : (constraints.maxWidth - 12) / 2;
-                return AdaptiveActionRow(
-                  breakpoint: 520,
-                  children: [
-                    SizedBox(
-                      width: actionWidth,
-                      child: OutlinedButton.icon(
-                        onPressed: onReview,
-                        icon: const Icon(
-                          Icons.star_rounded,
-                          color: AppTheme.rating,
-                        ),
-                        label: const Text('Avaliar'),
-                        style: _secondaryButtonStyle,
-                      ),
-                    ),
-                    SizedBox(
-                      width: actionWidth,
-                      child: StreamBuilder<bool>(
-                        stream: favoriteStream,
-                        initialData: false,
-                        builder: (context, snapshot) {
-                          final favorite = snapshot.data ?? false;
-                          return OutlinedButton.icon(
-                            onPressed: () => onToggleFavorite(!favorite),
-                            icon: Icon(
-                              favorite
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: AppTheme.error,
-                            ),
-                            label: Text(favorite ? 'Favoritado' : 'Favoritar'),
-                            style: _secondaryButtonStyle,
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+            const SizedBox(height: 25),
+            _OpeningHoursCard(station: station),
+            const SizedBox(height: 18),
+            _InformationCard(station: station),
             const SizedBox(height: 30),
+            StationRatingOverview(
+              average: station.averageRating,
+              reviewCount: station.reviewCount,
+              ratings: reviews.map((review) => review.rating).toList(),
+            ),
+            const SizedBox(height: 24),
             Wrap(
               alignment: WrapAlignment.spaceBetween,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -414,6 +410,218 @@ class PublicStationProfileContent extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ProfileActions extends StatelessWidget {
+  const _ProfileActions({
+    required this.favoriteStream,
+    required this.onDirections,
+    required this.onReview,
+    required this.onToggleFavorite,
+  });
+
+  final Stream<bool> favoriteStream;
+  final VoidCallback onDirections;
+  final VoidCallback onReview;
+  final Future<void> Function(bool favorite) onToggleFavorite;
+
+  ButtonStyle get _secondaryButtonStyle => OutlinedButton.styleFrom(
+    minimumSize: const Size.fromHeight(52),
+    foregroundColor: AppTheme.primary,
+    side: const BorderSide(color: AppTheme.outline),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton.icon(
+            onPressed: onDirections,
+            icon: const Icon(Icons.directions_outlined),
+            label: const Text('Como chegar'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              backgroundColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 500;
+              final actionWidth = compact
+                  ? double.infinity
+                  : (constraints.maxWidth - 10) / 2;
+              return AdaptiveActionRow(
+                breakpoint: 500,
+                children: [
+                  SizedBox(
+                    width: actionWidth,
+                    child: OutlinedButton.icon(
+                      onPressed: onReview,
+                      icon: const Icon(
+                        Icons.star_rounded,
+                        color: AppTheme.rating,
+                      ),
+                      label: const Text('Avaliar'),
+                      style: _secondaryButtonStyle,
+                    ),
+                  ),
+                  SizedBox(
+                    width: actionWidth,
+                    child: StreamBuilder<bool>(
+                      stream: favoriteStream,
+                      initialData: false,
+                      builder: (context, snapshot) {
+                        final favorite = snapshot.data ?? false;
+                        return OutlinedButton.icon(
+                          onPressed: () => onToggleFavorite(!favorite),
+                          icon: Icon(
+                            favorite
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: AppTheme.error,
+                          ),
+                          label: Text(favorite ? 'Favoritado' : 'Favoritar'),
+                          style: _secondaryButtonStyle,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoutePreviewCard extends StatelessWidget {
+  const _RoutePreviewCard({required this.address, required this.onDirections});
+
+  final String address;
+  final VoidCallback onDirections;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 128,
+            child: Stack(
+              children: [
+                const Positioned.fill(
+                  child: ColoredBox(
+                    color: AppTheme.primarySurface,
+                    child: CustomPaint(painter: _RoutePreviewPainter()),
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.24),
+                          blurRadius: 16,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.local_gas_station_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Endereço e rota',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Prévia ilustrativa. A rota será calculada no mapa.',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  address.isEmpty ? 'Endereço não informado' : address,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: onDirections,
+                    icon: const Icon(Icons.route_outlined),
+                    label: const Text('Abrir rota pelo endereço'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoutePreviewPainter extends CustomPainter {
+  const _RoutePreviewPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final street = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8;
+    for (var y = 22.0; y < size.height; y += 38) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 18), street);
+    }
+    for (var x = 34.0; x < size.width; x += 72) {
+      canvas.drawLine(Offset(x, 0), Offset(x - 18, size.height), street);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class StationReviewDialog extends StatefulWidget {
@@ -748,67 +956,139 @@ class _StationHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            StationLogo(stationName: station.name, size: 64),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    station.name,
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    station.fullAddress,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.outline),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textLight.withValues(alpha: 0.045),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(width: 5, color: AppTheme.primary),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(23, 18, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primarySurface,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        station.city.isEmpty
+                            ? 'POSTO LOCAL'
+                            : 'POSTO EM ${station.city.toUpperCase()}',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.35,
+                        ),
+                      ),
+                    ),
+                    StatusPill(
+                      isOpen: station.isOpenAt(DateTime.now()),
+                      compact: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    StationLogo(stationName: station.name, size: 72),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            station.name,
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 7),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 18,
+                                color: AppTheme.textMuted,
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  station.fullAddress,
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 17),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    TrustBadge(
+                      text: _PricesCard.updatedText(station.updatedAt),
+                      icon: Icons.update_rounded,
+                    ),
+                    const TrustBadge(
+                      text: 'Informado pelo posto',
+                      icon: Icons.verified_outlined,
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 5,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _Stars(rating: station.averageRating),
+                        Text(
+                          station.reviewCount == 0
+                              ? 'Ainda sem avaliações'
+                              : '${station.averageRating.toStringAsFixed(1)} (${station.reviewCount})',
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        StatusPill(isOpen: station.isOpenAt(DateTime.now()), compact: true),
-        const SizedBox(height: 13),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            TrustBadge(
-              text: _PricesCard.updatedText(station.updatedAt),
-              icon: Icons.update_rounded,
-            ),
-            const TrustBadge(
-              text: 'Informado pelo posto',
-              icon: Icons.verified_outlined,
-            ),
-          ],
-        ),
-        const SizedBox(height: 13),
-        Row(
-          children: [
-            _Stars(rating: station.averageRating),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Text(
-                station.reviewCount == 0
-                    ? 'Ainda sem avaliações'
-                    : '${station.averageRating.toStringAsFixed(1)}  (${station.reviewCount} avaliações)',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -828,20 +1108,18 @@ class _PricesCard extends StatelessWidget {
     final extras = extraFuels.entries
         .where((fuel) => (station.fuelPrices[fuel.key] ?? 0) > 0)
         .toList(growable: false);
+    final informedCount = station.fuelPrices.values
+        .where((price) => price > 0)
+        .length;
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Todos os preços',
-            style: Theme.of(context).textTheme.titleLarge,
+          _PricesHeader(
+            updatedText: updatedText(station.updatedAt),
+            informedCount: informedCount,
           ),
-          const SizedBox(height: 4),
-          Text(
-            updatedText(station.updatedAt),
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           FuelPriceGrid(prices: station.fuelPrices),
           if (extras.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -875,10 +1153,93 @@ class _PricesCard extends StatelessWidget {
   }
 }
 
-class _InformationCard extends StatelessWidget {
+class _PricesHeader extends StatelessWidget {
+  const _PricesHeader({required this.updatedText, required this.informedCount});
+
+  final String updatedText;
+  final int informedCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final identity = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: AppTheme.primarySurface,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.local_gas_station_outlined,
+            color: AppTheme.primary,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Combustíveis disponíveis',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 3),
+              Text(updatedText, style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+        ),
+      ],
+    );
+    final count = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppTheme.elevatedSurface,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$informedCount ${informedCount == 1 ? 'valor' : 'valores'}',
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w700),
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stack =
+            constraints.maxWidth < 340 ||
+            MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+        if (stack) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              identity,
+              const SizedBox(height: 10),
+              Align(alignment: Alignment.centerLeft, child: count),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: 10),
+            count,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _OpeningHoursCard extends StatelessWidget {
   final PublicGasStation station;
 
-  const _InformationCard({required this.station});
+  const _OpeningHoursCard({required this.station});
 
   static const dayLabels = {
     'monday': 'Segunda-feira',
@@ -892,28 +1253,123 @@ class _InformationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final configuredDays = dayLabels.entries
+        .where((entry) => station.openingHours.containsKey(entry.key))
+        .toList(growable: false);
     return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.primarySurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: const Icon(Icons.schedule_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Horários de funcionamento',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      station.isOpenAt(DateTime.now())
+                          ? 'O posto está aberto agora'
+                          : 'Consulte os horários antes de sair',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: AppTheme.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (configuredDays.isEmpty)
+            const Text(
+              'Horários ainda não informados pelo posto.',
+              style: TextStyle(color: AppTheme.primary),
+            )
+          else
+            ...configuredDays.map((entry) {
+              final hours = station.openingHours[entry.key];
+              final enabled = hours?['enabled'] == true;
+              final value = enabled
+                  ? '${hours?['open'] ?? '--:--'} – ${hours?['close'] ?? '--:--'}'
+                  : 'Fechado';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  spacing: 12,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      entry.value,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: AppTheme.primary),
+                    ),
+                    Text(
+                      value,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: enabled ? AppTheme.primary : AppTheme.error,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+class _InformationCard extends StatelessWidget {
+  final PublicGasStation station;
+
+  const _InformationCard({required this.station});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
       decoration: BoxDecoration(
         color: AppTheme.card,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.outline),
       ),
-      child: ExpansionTile(
-        shape: const Border(),
-        collapsedShape: const Border(),
-        leading: const Icon(
-          Icons.info_outline_rounded,
-          color: AppTheme.primaryInteractive,
-        ),
-        title: const Text(
-          'Informações do posto',
-          style: TextStyle(fontWeight: FontWeight.w800),
-        ),
-        subtitle: Text(
-          station.phone.isEmpty ? station.fullAddress : station.phone,
-          style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(
+            'Contato e localização',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
           _InfoRow(
             icon: Icons.location_on_outlined,
             title: 'Endereço',
@@ -923,41 +1379,6 @@ class _InformationCard extends StatelessWidget {
             icon: Icons.phone_outlined,
             title: 'Telefone',
             value: station.phone.isEmpty ? 'Não informado' : station.phone,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-            child: Column(
-              children: dayLabels.entries.map((entry) {
-                final hours = station.openingHours[entry.key];
-                final enabled = hours?['enabled'] == true;
-                final value = enabled
-                    ? '${hours?['open'] ?? '--:--'} – ${hours?['close'] ?? '--:--'}'
-                    : 'Fechado';
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Wrap(
-                    alignment: WrapAlignment.spaceBetween,
-                    spacing: 12,
-                    runSpacing: 2,
-                    children: [
-                      Text(
-                        entry.value,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textMuted,
-                        ),
-                      ),
-                      Text(
-                        value,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: enabled ? AppTheme.textLight : AppTheme.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
           ),
         ],
       ),
@@ -1025,10 +1446,10 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _ServiceChip extends StatelessWidget {
+class _CharacteristicChip extends StatelessWidget {
   final String label;
 
-  const _ServiceChip({required this.label});
+  const _CharacteristicChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -1050,6 +1471,64 @@ class _ServiceChip extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ServiceTile extends StatelessWidget {
+  const _ServiceTile({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 56),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.outline),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: AppTheme.primarySurface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              _iconFor(label),
+              color: AppTheme.primaryInteractive,
+              size: 19,
+            ),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _iconFor(String service) {
+    final normalized = service.toLowerCase();
+    if (normalized.contains('conveni')) return Icons.storefront_outlined;
+    if (normalized.contains('lava')) return Icons.local_car_wash_outlined;
+    if (normalized.contains('óleo')) return Icons.oil_barrel_outlined;
+    if (normalized.contains('calibr')) return Icons.speed_outlined;
+    if (normalized.contains('wi-fi')) return Icons.wifi_rounded;
+    if (normalized.contains('restaurante')) return Icons.restaurant_outlined;
+    if (normalized.contains('banheiro')) return Icons.wc_outlined;
+    if (normalized.contains('mecânica')) return Icons.build_outlined;
+    return Icons.check_circle_outline_rounded;
   }
 }
 

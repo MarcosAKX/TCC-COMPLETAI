@@ -6,10 +6,16 @@ import '../../../app/app_routes.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/adaptive_layout.dart';
 import '../../../core/widgets/station_logo.dart';
+import '../../../core/widgets/station_rating_overview.dart';
+import '../../../core/widgets/station_visual_cover.dart';
 import '../../../core/widgets/status_pill.dart';
+import '../../../core/widgets/trust_badge.dart';
 import '../models/station_dashboard_draft.dart';
+import '../models/station_presentation.dart';
 import '../models/station_review.dart';
 import '../services/gas_station_service.dart';
+import '../services/station_presentation_service.dart';
+import 'station_presentation_page.dart';
 
 enum _DashboardSection { prices, information, hours, reviews }
 
@@ -63,6 +69,8 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
   ];
 
   final GasStationService _service = GasStationService();
+  final StationPresentationService _presentationService =
+      StationPresentationService();
   final Map<String, TextEditingController> _priceControllers = {
     for (final key in _fuelLabels.keys) key: TextEditingController(),
   };
@@ -74,6 +82,10 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
 
   String _stationName = 'Meu posto';
   String _stationAddress = '';
+  StationPresentation _presentation = const StationPresentation(
+    stationBrand: 'Bandeira branca',
+  );
+  Uint8List? _presentationCoverBytes;
   DateTime? _lastUpdatedAt;
   StationDashboardDraft? _draft;
   _DashboardSection _selectedSection = _DashboardSection.prices;
@@ -106,6 +118,7 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
   }
 
   Future<void> _loadStationData() async {
+    final presentationFuture = _loadStationPresentation();
     try {
       final data = await _service.getCurrentStationData();
       if (!mounted) return;
@@ -118,9 +131,23 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
         _showMessage('Não foi possível carregar os dados administrativos.');
       }
     } finally {
+      await presentationFuture;
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _loadStationPresentation() async {
+    try {
+      final presentation = await _presentationService.loadCurrent();
+      if (!mounted) return;
+      setState(() {
+        _presentation = presentation;
+        _presentationCoverBytes = presentation.coverImageBytes;
+      });
+    } catch (_) {
+      // Presentation is an optional projection for the existing dashboard.
     }
   }
 
@@ -213,8 +240,8 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
       final rawValue = entry.value.text.trim();
       if (rawValue.isEmpty) continue;
 
-      final price = double.tryParse(rawValue.replaceAll(',', '.'));
-      if (price == null || price <= 0 || price > 50) {
+      final price = validFuelPriceFromText(rawValue);
+      if (price == null) {
         _showMessage('Confira o preço de ${_fuelLabels[entry.key]}.');
         return;
       }
@@ -361,6 +388,22 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
         (_initialPriceValues[entry.key] ?? '');
   }).length;
 
+  int get _configuredPriceCount => countConfiguredFuelPrices(
+    _priceControllers.values.map((controller) => controller.text),
+  );
+
+  int get _activeDayCount => _openingHours.values
+      .where((schedule) => schedule['enabled'] == true)
+      .length;
+
+  Widget _buildOperationalOverview() {
+    return DashboardOperationalOverview(
+      configuredPriceCount: _configuredPriceCount,
+      serviceCount: _selectedServices.length,
+      activeDayCount: _activeDayCount,
+    );
+  }
+
   void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -501,6 +544,8 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                _buildOperationalOverview(),
+                const SizedBox(height: 16),
                 _buildPricesCard(),
                 const SizedBox(height: 20),
                 _buildStationSummary(),
@@ -518,6 +563,8 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
       title: 'Informações do posto',
       subtitle: 'Mantenha características e serviços fáceis de consultar.',
       children: [
+        _buildOperationalOverview(),
+        const SizedBox(height: 20),
         _buildStationSummary(),
         const SizedBox(height: 20),
         _buildTagsCard(),
@@ -538,6 +585,8 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
       title: 'Horários de funcionamento',
       subtitle: 'Informe quando os clientes podem encontrar o posto aberto.',
       children: [
+        _buildOperationalOverview(),
+        const SizedBox(height: 20),
         _buildOpeningHoursCard(),
         const SizedBox(height: 20),
         _buildSaveButton(
@@ -607,91 +656,24 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
   }
 
   Widget _buildStationSummary() {
-    return _DashboardCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _stationName,
-                      style: const TextStyle(
-                        color: AppTheme.textLight,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    if (_stationAddress.isNotEmpty) ...[
-                      const SizedBox(height: 9),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            color: AppTheme.textMuted,
-                            size: 17,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              _stationAddress,
-                              style: const TextStyle(
-                                color: AppTheme.textMuted,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Editar dados cadastrais',
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.stationProfile);
-                },
-                icon: const Icon(Icons.edit_outlined, color: AppTheme.primary),
-              ),
-            ],
+    return DashboardPublicPreview(
+      stationName: _stationName,
+      address: _stationAddress,
+      isOpen: _isOpenNow,
+      configuredPriceCount: _configuredPriceCount,
+      serviceCount: _selectedServices.length,
+      activeDayCount: _activeDayCount,
+      lastUpdatedText: _lastUpdatedText,
+      coverImageBytes: _presentationCoverBytes,
+      stationBrand: _presentation.stationBrand,
+      onEditPresentation: () async {
+        final changed = await Navigator.of(context).push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => const StationPresentationPage(),
           ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppTheme.background.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _borderColor),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.update_rounded,
-                  size: 19,
-                  color: AppTheme.primary,
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Text(
-                    'Última atualização: $_lastUpdatedText',
-                    style: const TextStyle(
-                      color: AppTheme.textMuted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+        if (changed == true) await _loadStationData();
+      },
     );
   }
 
@@ -699,12 +681,12 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.savings.withValues(alpha: 0.35)),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.24)),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: ColoredBox(
-          color: AppTheme.savingsSurface.withValues(alpha: 0.45),
+          color: AppTheme.primarySurface.withValues(alpha: 0.45),
           child: _DashboardCard(
             title: 'Painel de preços',
             subtitle: 'Clientes verão os novos valores assim que você publicar',
@@ -983,48 +965,10 @@ class _StationDashboardPageState extends State<StationDashboardPage> {
             constraints: const BoxConstraints(maxWidth: 900),
             child: Column(
               children: [
-                _DashboardCard(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 62,
-                        height: 62,
-                        decoration: BoxDecoration(
-                          color: AppTheme.rating.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(
-                          Icons.star_rounded,
-                          color: AppTheme.rating,
-                          size: 34,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              reviews.isEmpty
-                                  ? 'Sem avaliações'
-                                  : average.toStringAsFixed(1),
-                              style: const TextStyle(
-                                color: AppTheme.textLight,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              reviews.isEmpty
-                                  ? 'As avaliações aparecerão aqui'
-                                  : '${reviews.length} ${reviews.length == 1 ? 'avaliação' : 'avaliações'}',
-                              style: const TextStyle(color: AppTheme.textMuted),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                StationRatingOverview(
+                  average: average,
+                  reviewCount: reviews.length,
+                  ratings: reviews.map((review) => review.rating).toList(),
                 ),
                 const SizedBox(height: 20),
                 if (reviews.isEmpty)
@@ -1266,11 +1210,33 @@ class DashboardHeader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Text(
-            'Completai!',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Completai!',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                stationName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Área administrativa',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppTheme.textMuted),
+              ),
+            ],
           ),
         ),
       ],
@@ -1332,6 +1298,290 @@ class DashboardHeader extends StatelessWidget {
                 ],
               );
             },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DashboardPublicPreview extends StatelessWidget {
+  const DashboardPublicPreview({
+    super.key,
+    required this.stationName,
+    required this.address,
+    required this.isOpen,
+    required this.configuredPriceCount,
+    required this.serviceCount,
+    required this.activeDayCount,
+    required this.lastUpdatedText,
+    this.coverImageUrl,
+    this.coverImageBytes,
+    this.stationBrand = 'Bandeira branca',
+    required this.onEditPresentation,
+  });
+
+  final String stationName;
+  final String address;
+  final bool isOpen;
+  final int configuredPriceCount;
+  final int serviceCount;
+  final int activeDayCount;
+  final String lastUpdatedText;
+  final String? coverImageUrl;
+  final Uint8List? coverImageBytes;
+  final String stationBrand;
+  final VoidCallback onEditPresentation;
+
+  @override
+  Widget build(BuildContext context) {
+    final facts = [
+      _PreviewFact(
+        icon: Icons.local_gas_station_outlined,
+        value:
+            '$configuredPriceCount ${configuredPriceCount == 1 ? 'combustível' : 'combustíveis'}',
+      ),
+      _PreviewFact(
+        icon: Icons.storefront_outlined,
+        value: '$serviceCount ${serviceCount == 1 ? 'serviço' : 'serviços'}',
+      ),
+      _PreviewFact(
+        icon: Icons.schedule_outlined,
+        value:
+            '$activeDayCount ${activeDayCount == 1 ? 'dia ativo' : 'dias ativos'}',
+      ),
+    ];
+
+    return _DashboardCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Prévia para clientes',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Uma visão rápida de como o posto será apresentado.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Editar exibição',
+                onPressed: onEditPresentation,
+                icon: const Icon(Icons.edit_outlined),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          StationVisualCover(
+            stationName: stationName,
+            locationLabel: address,
+            isOpen: isOpen,
+            compact: true,
+            coverImageUrl: coverImageUrl,
+            coverImageBytes: coverImageBytes,
+            stationBrand: stationBrand,
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = MediaQuery.textScalerOf(context).scale(1);
+              final columns = constraints.maxWidth >= 620 && scale < 1.5
+                  ? 3
+                  : scale < 1.4 && constraints.maxWidth >= 380
+                  ? 2
+                  : 1;
+              final width =
+                  (constraints.maxWidth - ((columns - 1) * 9)) / columns;
+              return Wrap(
+                spacing: 9,
+                runSpacing: 9,
+                children: facts
+                    .map((fact) => SizedBox(width: width, child: fact))
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusPill(isOpen: isOpen, compact: true),
+              TrustBadge(
+                text: 'Atualizado: $lastUpdatedText',
+                icon: Icons.update_rounded,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewFact extends StatelessWidget {
+  const _PreviewFact({required this.icon, required this.value});
+
+  final IconData icon;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 52),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.primarySurface,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppTheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppTheme.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class DashboardOperationalOverview extends StatelessWidget {
+  const DashboardOperationalOverview({
+    super.key,
+    required this.configuredPriceCount,
+    required this.serviceCount,
+    required this.activeDayCount,
+  });
+
+  final int configuredPriceCount;
+  final int serviceCount;
+  final int activeDayCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = [
+      _DashboardMetric(
+        icon: Icons.local_gas_station_outlined,
+        label: 'Combustíveis',
+        value: '$configuredPriceCount de 5',
+      ),
+      _DashboardMetric(
+        icon: Icons.storefront_outlined,
+        label: 'Serviços',
+        value: '$serviceCount ${serviceCount == 1 ? 'serviço' : 'serviços'}',
+      ),
+      _DashboardMetric(
+        icon: Icons.calendar_month_outlined,
+        label: 'Funcionamento',
+        value:
+            '$activeDayCount ${activeDayCount == 1 ? 'dia ativo' : 'dias ativos'}',
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = MediaQuery.textScalerOf(context).scale(1);
+        final columns = constraints.maxWidth >= 700
+            ? 3
+            : constraints.maxWidth >= 360 && scale < 1.4
+            ? 2
+            : 1;
+        final itemWidth =
+            (constraints.maxWidth - ((columns - 1) * 10)) / columns;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: items
+              .map((item) => SizedBox(width: itemWidth, child: item))
+              .toList(),
+        );
+      },
+    );
+  }
+}
+
+class _DashboardMetric extends StatelessWidget {
+  const _DashboardMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: '$label, $value',
+      child: ExcludeSemantics(
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 78),
+          padding: const EdgeInsets.all(13),
+          decoration: BoxDecoration(
+            color: AppTheme.card,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: AppTheme.outline),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppTheme.primarySurface,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Icon(icon, color: AppTheme.primary, size: 20),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      value,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1463,6 +1713,13 @@ class _DashboardCard extends StatelessWidget {
         color: _StationDashboardPageState._panelColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppTheme.outline),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.textLight.withValues(alpha: 0.025),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

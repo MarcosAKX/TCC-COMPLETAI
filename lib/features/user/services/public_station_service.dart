@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../gas_station/models/public_gas_station.dart';
+import '../../gas_station/models/station_presentation.dart';
 import '../../gas_station/models/station_review.dart';
 
 class PublicStationService {
@@ -69,11 +70,31 @@ class PublicStationService {
         ? 0.0
         : reviews.fold<double>(0, (total, item) => total + item.rating) /
               reviews.length;
-    return PublicGasStation.fromDocument(
+    final station = PublicGasStation.fromDocument(
       document,
       averageRating: average,
       reviewCount: reviews.length,
     );
+    try {
+      final coverDocument = await _firestore
+          .collection('station_covers')
+          .doc(stationId)
+          .get();
+      final coverData = coverDocument.data();
+      final value = coverData?['bytes'];
+      final byteSize = coverData?['byteSize'];
+      if (coverData?['contentType'] != 'image/jpeg' ||
+          value is! Blob ||
+          byteSize is! int ||
+          byteSize != value.bytes.lengthInBytes ||
+          byteSize > StationCoverProcessor.maxOutputBytes) {
+        return station;
+      }
+      return station.withCoverImageBytes(value.bytes);
+    } on FirebaseException catch (error) {
+      debugPrint('Falha ao carregar capa de ${station.id}: ${error.code}.');
+      return station;
+    }
   }
 
   Future<List<StationReview>> getReviews(String stationId) async {
